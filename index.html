@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>面膜庫存管理系統</title>
+    <title>護膚品庫存管理系統</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         body { background-color: #f3f4f6; color: #1f2937; padding: 16px; font-size: 14px; padding-bottom: 90px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 950px; margin: 0 auto; }
         .header { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; text-align: center; }
         .header h1 { font-size: 22px; color: #111827; margin-bottom: 6px; }
         .header p { color: #6b7280; font-size: 13px; }
         .user-bar { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        
+        .category-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+        .tab-btn { padding: 8px 16px; border-radius: 20px; background: #ffffff; border: 1px solid #d1d5db; font-weight: bold; color: #4b5563; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        .tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3); }
+
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
         .stat-card { background: #ffffff; padding: 14px; border-radius: 10px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 2px solid transparent; cursor: pointer; }
         .stat-card.active { border-color: #2563eb; background-color: #eff6ff; }
@@ -48,22 +53,17 @@
         .fixed-save-btn { position: fixed; bottom: 20px; right: 20px; z-index: 99; background: #2563eb; color: #ffffff; border: none; padding: 12px 20px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .fixed-save-btn:active { transform: scale(0.95); }
 
-        .scan-btn { background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
-        .scan-btn:hover { background: #047857; }
         .ai-btn { background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
         .ai-btn:hover { background: #6d28d9; }
-        #scanner-container { display: none; margin-top: 10px; border: 2px dashed #059669; border-radius: 8px; padding: 8px; text-align: center; background: #f0fdf4; }
-        #reader { width: 100%; max-width: 300px; margin: 0 auto; }
         .ai-loading { display: none; text-align: center; font-size: 13px; color: #7c3aed; font-weight: bold; padding: 8px; margin-top: 6px; background: #f3e8ff; border-radius: 6px; }
     </style>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
     <div class="container">
         <div class="header">
-            <h1>🌸 面膜庫存管理系統</h1>
-            <p>輕鬆管理個人庫存、到期日提醒與加單狀態</p>
+            <h1>🌸 護膚品庫存管理系統</h1>
+            <p>輕鬆管理個人護膚品、到期日提醒與加單狀態</p>
         </div>
 
         <div class="user-bar">
@@ -76,13 +76,22 @@
             </div>
         </div>
 
+        <!-- 護膚品大類切換標籤 -->
+        <div class="category-tabs">
+            <button class="tab-btn active" onclick="switchProductType('面膜')">🎭 面膜</button>
+            <button class="tab-btn" onclick="switchProductType('精華')">💧 精華</button>
+            <button class="tab-btn" onclick="switchProductType('面霜')">🧴 面霜</button>
+            <button class="tab-btn" onclick="switchProductType('防曬')">☀️ 防曬</button>
+            <button class="tab-btn" onclick="switchProductType('化妝水')">💦 化妝水</button>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-card active" id="cardTotalItems" onclick="filterByStat('ALL')">
                 <div style="color: #6b7280; font-size: 12px;">總品項數 (全部)</div>
                 <div class="num c-blue" id="statTotalItems">0</div>
             </div>
             <div class="stat-card" id="cardTotalSheets" onclick="filterByStat('ALL')">
-                <div style="color: #6b7280; font-size: 12px;">剩餘總數量</div>
+                <div style="color: #6b7280; font-size: 12px;" id="statTotalSheetsLabel">剩餘總數量</div>
                 <div class="num c-pink" id="statTotalSheets">0</div>
             </div>
             <div class="stat-card" id="cardReorder" onclick="filterByStat('REORDER')">
@@ -115,15 +124,7 @@
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>功效分類</th>
-                        <th>品牌 / 產品名稱</th>
-                        <th>進貨量</th>
-                        <th>已使用</th>
-                        <th>剩餘數量</th>
-                        <th>到期日</th>
-                        <th>加單狀態 (點擊切換)</th>
-                        <th>操作</th>
+                    <tr id="tableHeaderRow">
                     </tr>
                 </thead>
                 <tbody id="inventoryTable">
@@ -175,13 +176,13 @@
             
             <!-- AI 圖片識別功能 -->
             <div class="form-group" style="background: #faf5ff; padding: 10px; border-radius: 8px; border: 1px solid #e9d5ff;">
-                <label style="color: #6b21a8;">✨ AI 相片辨識面膜資料</label>
+                <label style="color: #6b21a8;">✨ AI 相片辨識護膚品資料</label>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="ai-btn" onclick="triggerCameraCapture()">📷 拍照辨識</button>
                     <button type="button" class="ai-btn" style="background: #4c1d95;" onclick="triggerGalleryUpload()">🖼️ 上載相片</button>
                     <input type="file" id="aiImageInput" accept="image/*" style="display: none;" onchange="handleAiImageUpload(event)">
                 </div>
-                <div id="aiLoadingStatus" class="ai-loading">🤖 AI 正在分析面膜相片中，請稍候...</div>
+                <div id="aiLoadingStatus" class="ai-loading">🤖 AI 正在分析護膚品相片中，請稍候...</div>
             </div>
 
             <div class="form-group">
@@ -199,9 +200,10 @@
             </div>
             <div class="form-group">
                 <label>產品名稱 *</label>
-                <input type="text" id="inputName" class="form-control" placeholder="例如：B3 深度保濕面膜">
+                <input type="text" id="inputName" class="form-control" placeholder="例如：B3 精華 / 護膚霜">
             </div>
-            <div style="display: flex; gap: 10px;">
+            
+            <div id="quantityGroup" style="display: flex; gap: 10px;">
                 <div class="form-group" style="flex:1;">
                     <label>進貨量 *</label>
                     <input type="number" id="inputPurchased" class="form-control" value="1" min="1">
@@ -211,8 +213,9 @@
                     <input type="number" id="inputUsed" class="form-control" value="0" min="0">
                 </div>
             </div>
+
             <div class="form-group">
-                <label>到期日 *</label>
+                <label>到期日</label>
                 <input type="date" id="inputExpiry" class="form-control">
             </div>
             <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
@@ -242,26 +245,51 @@
 
     <script>
         var defaultInventory = [
-            { id: 1, brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
-            { id: 2, brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 12, brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 3, brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
-            { id: 4, brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
-            { id: 5, brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
-            { id: 6, brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
-            { id: 7, brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
-            { id: 8, brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
-            { id: 9, brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
-            { id: 10, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
-            { id: 11, brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
-            { id: 13, brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 14, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
+            // 面膜類 (22 款)
+            { id: 1, type: "面膜", brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
+            { id: 2, type: "面膜", brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 12, type: "面膜", brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 3, type: "面膜", brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
+            { id: 4, type: "面膜", brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
+            { id: 5, type: "面膜", brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
+            { id: 6, type: "面膜", brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
+            { id: 7, type: "面膜", brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
+            { id: 8, type: "面膜", brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
+            { id: 9, type: "面膜", brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
+            { id: 10, type: "面膜", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
+            { id: 11, type: "面膜", brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
+            { id: 13, type: "面膜", brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 14, type: "面膜", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 15, type: "面膜", brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 16, type: "面膜", brand: "Mentholatum (曼秀雷敦)", category: "✨ 美白煥膚", name: "Botanics 德國薰衣草提亮面膜", purchased: 12, used: 2, expiry: "2029-02-20", reorderOverride: null },
+            { id: 17, type: "面膜", brand: "PATRA", category: "👑 緊緻抗老", name: "8-D Peptide Intensive Sculpting Mask (勝肽緊緻面膜)", purchased: 1, used: 0, expiry: "2029-09-07", reorderOverride: null },
+            { id: 18, type: "面膜", brand: "Sabe", category: "🌿 舒緩修護", name: "Masque Solution Réparation Dragon Blood (龍血修護面膜)", purchased: 2, used: 0, expiry: "2027-06-15", reorderOverride: null },
+            { id: 19, type: "面膜", brand: "Biodance", category: "👑 緊緻抗老", name: "Bio-Collagen Real Deep Mask (膠原蛋白深層面膜)", purchased: 3, used: 0, expiry: "2027-05-24", reorderOverride: null },
+            { id: 20, type: "面膜", brand: "Biodance", category: "🌿 舒緩修護", name: "Hydro Cera-nol Real Deep Mask (水潤神經醯胺修護面膜)", purchased: 3, used: 0, expiry: "2027-05-21", reorderOverride: null },
+            { id: 21, type: "面膜", brand: "VT", category: "👑 緊緻抗老", name: "Dressing Hydro Gel Mask (VT PDRN 植物水凝膠面膜)", purchased: 5, used: 0, expiry: "2027-07-20", reorderOverride: null },
+            { id: 22, type: "面膜", brand: "SK-II", category: "✨ 美白煥膚", name: "Facial Treatment Mask (青春護膚面膜)", purchased: 1, used: 0, expiry: "2026-12-31", reorderOverride: null },
+            
+            // 精華類 (14 款)
+            { id: 101, type: "精華", brand: "VITA-AGE IN", category: "👑 緊緻抗老", name: "Filler Antirughe (撫紋抗皺精華)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 102, type: "精華", brand: "VITA-AGE IN", category: "👑 緊緻抗老", name: "Lifting Collo e Décolleté (頸部緊緻提拉精華)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 103, type: "精華", brand: "VITA-AGE Gocce Pure", category: "💧 保濕鎖水", name: "Acido Ialuronico (玻尿酸深層保濕精華)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 104, type: "精華", brand: "VITA-AGE Gocce Pure", category: "👑 緊緻抗老", name: "Collagene (膠原蛋白紅石榴彈力精華)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 105, type: "精華", brand: "VITA-AGE Prestige", category: "👑 緊緻抗老", name: "Staminali Project (膠原膠囊抗老安瓶 7支裝)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 106, type: "精華", brand: "VITA-AGE Prestige", category: "👑 緊緻抗老", name: "Siero Viso con Platino Colloidale (白金膠體精華液)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 107, type: "精華", brand: "EXOSOMES", category: "👑 緊緻抗老", name: "Exosomes Serum (外泌體逆齡精華 10支裝)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 108, type: "精華", brand: "Neville Derma Lab EX", category: "💧 保濕鎖水", name: "NE-212 青春之泉皇牌保濕注水療程精華", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 109, type: "精華", brand: "Neville Derma Lab EX", category: "🌿 舒緩修護", name: "NE-132 抗敏舒緩鎮靜肌膚療程精華", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 110, type: "精華", brand: "Dactor Peel (SKYNA)", category: "✨ 美白煥膚", name: "Professional For Face (E.X.O 無酸極光素精華)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 111, type: "精華", brand: "VITAL", category: "🌿 舒緩修護", name: "1號：外泌體逆齡修護精華 (Exosomes Vial)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 112, type: "精華", brand: "VITAL", category: "👑 緊緻抗老", name: "2號：PDRN 彈力修護精華 (Rigenerante Vial)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 113, type: "精華", brand: "VITAL", category: "💧 保濕鎖水", name: "3號：B3 水光修護精華 (Luminoso B3 Vial)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 114, type: "精華", brand: "VITAL", category: "💧 保濕鎖水", name: "5號：PDRN 保濕鎖水精華 (Acqua Vial)", purchased: 1, used: 0, expiry: "", reorderOverride: null }
         ];
 
         var inventory = [];
         var userList = ["Funfun", "YUK YUK"];
         var currentUser = "Funfun";
+        var currentProductType = "面膜";
         var deletingId = null;
         var currentStatFilter = "ALL";
 
@@ -270,6 +298,23 @@
             toast.innerText = msg;
             toast.style.display = "block";
             setTimeout(function() { toast.style.display = "none"; }, 2500);
+        }
+
+        function switchProductType(type) {
+            currentProductType = type;
+            document.querySelectorAll(".tab-btn").forEach(function(btn) {
+                btn.classList.remove("active");
+                if (btn.innerText.indexOf(type) !== -1) btn.classList.add("active");
+            });
+
+            var cardTotalSheets = document.getElementById("cardTotalSheets");
+            if (type === '面膜' || type === '精華') {
+                cardTotalSheets.style.display = "block";
+            } else {
+                cardTotalSheets.style.display = "none";
+            }
+
+            renderTable();
         }
 
         function triggerCameraCapture() {
@@ -290,14 +335,14 @@
 
             var statusDiv = document.getElementById("aiLoadingStatus");
             statusDiv.style.display = "block";
-            statusDiv.innerText = "🤖 AI 正在分析面膜相片中，請稍候...";
+            statusDiv.innerText = "🤖 AI 正在分析相片中，請稍候...";
 
             try {
                 var base64Data = await fileToBase64(file);
                 var rawBase64 = base64Data.split(',')[1];
                 var mimeType = file.type || "image/jpeg";
 
-                var promptText = "請分析這張面膜包裝圖片，提取品牌名稱 (brand)、產品名稱 (name)、以及功效分類 (category: 只能選以下四者之一：'💧 保濕鎖水', '✨ 美白煥膚', '🌿 舒緩修護', '👑 緊緻抗老')。請僅返回合法的JSON格式，無須Markdown格式。如：{\"brand\":\"...\", \"name\":\"...\", \"category\":\"...\"}";
+                var promptText = "請分析這張護膚品包裝圖片，提取品牌名稱 (brand)、產品名稱 (name)、以及功效分類 (category: 只能選以下四者之一：'💧 保濕鎖水', '✨ 美白煥膚', '🌿 舒緩修護', '👑 緊緻抗老')。請僅返回合法的JSON格式，無須Markdown格式。如：{\"brand\":\"...\", \"name\":\"...\", \"category\":\"...\"}";
 
                 var payload = {
                     contents: [{
@@ -309,7 +354,6 @@
                     }]
                 };
 
-                // 在獨立託管網站中使用 Gemini API
                 var userApiKey = localStorage.getItem("gemini_user_api_key") || "";
                 var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + userApiKey;
                 
@@ -320,7 +364,7 @@
                 });
 
                 if (!response.ok) {
-                    var apiKeyInput = prompt("網頁端調用 AI 辨識需要 Gemini API Key。\n請輸入您的免費 Gemini API Key（將只會安全地存於您的手機中）：");
+                    var apiKeyInput = prompt("調用 AI 辨識需要 Gemini API Key。\n請貼上您的免費 Gemini API Key：");
                     if (apiKeyInput) {
                         localStorage.setItem("gemini_user_api_key", apiKeyInput.trim());
                         showToast("API Key 已儲存，請重新點擊相片辨識！");
@@ -370,6 +414,7 @@
         }
 
         function getCategoryClass(cat) {
+            if (!cat) return "bg-moist";
             if (cat.indexOf("保濕") !== -1) return "bg-moist";
             if (cat.indexOf("美白") !== -1) return "bg-white";
             if (cat.indexOf("修護") !== -1) return "bg-repair";
@@ -389,17 +434,21 @@
             if (item.reorderOverride !== null && item.reorderOverride !== undefined) {
                 return item.reorderOverride;
             }
-            return (item.purchased - item.used) <= 2;
+            if (item.type === '面膜' || item.type === '精華') {
+                return ((item.purchased || 0) - (item.used || 0)) <= 2;
+            }
+            return false;
         }
 
         function updateStats() {
-            var totalItems = inventory.length;
+            var currentList = inventory.filter(function(i) { return (i.type || '面膜') === currentProductType; });
+            var totalItems = currentList.length;
             var totalSheets = 0;
             var reorderCount = 0;
             var expiringCount = 0;
 
-            inventory.forEach(function(item) {
-                var remaining = item.purchased - item.used;
+            currentList.forEach(function(item) {
+                var remaining = (item.purchased || 0) - (item.used || 0);
                 totalSheets += remaining;
                 if (checkIsReorderNeeded(item)) reorderCount++;
                 if (isExpiringSoon(item.expiry)) expiringCount++;
@@ -437,10 +486,36 @@
             var filterCat = document.getElementById("filterCategory").value;
             var filterReorder = document.getElementById("filterReorder").value;
 
+            var headerRow = document.getElementById("tableHeaderRow");
+            var showQty = (currentProductType === "面膜" || currentProductType === "精華");
+            
+            if (showQty) {
+                headerRow.innerHTML = `
+                    <th>功效分類</th>
+                    <th>品牌 / 產品名稱</th>
+                    <th>進貨量</th>
+                    <th>已使用</th>
+                    <th>剩餘數量</th>
+                    <th>到期日</th>
+                    <th>加單狀態</th>
+                    <th>操作</th>
+                `;
+            } else {
+                headerRow.innerHTML = `
+                    <th>功效分類</th>
+                    <th>品牌 / 產品名稱</th>
+                    <th>到期日</th>
+                    <th>加單狀態</th>
+                    <th>操作</th>
+                `;
+            }
+
             var tbody = document.getElementById("inventoryTable");
             tbody.innerHTML = "";
 
-            inventory.forEach(function(item) {
+            var currentList = inventory.filter(function(i) { return (i.type || '面膜') === currentProductType; });
+
+            currentList.forEach(function(item) {
                 var isReorderNeeded = checkIsReorderNeeded(item);
                 var isExpiring = isExpiringSoon(item.expiry);
 
@@ -452,31 +527,48 @@
                 var matchStatFilter = (currentStatFilter !== 'EXPIRING') || isExpiring;
 
                 if (matchSearch && matchCat && matchReorder && matchStatFilter) {
-                    var remaining = item.purchased - item.used;
+                    var remaining = (item.purchased || 0) - (item.used || 0);
                     var tr = document.createElement("tr");
                     var expiryStyle = isExpiring ? "color:#dc2626; font-weight:bold;" : "";
 
-                    tr.innerHTML = `
-                        <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td>
-                        <td><strong>[${item.brand}]</strong> ${item.name}</td>
-                        <td>${item.purchased}</td>
-                        <td>
-                            <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button>
-                            <span style="margin: 0 6px;">${item.used}</span>
-                            <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button>
-                        </td>
-                        <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td>
-                        <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td>
-                        <td>
-                            <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態">
-                                ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button>
-                            <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button>
-                        </td>
-                    `;
+                    if (showQty) {
+                        tr.innerHTML = `
+                            <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td>
+                            <td><strong>[${item.brand}]</strong> ${item.name}</td>
+                            <td>${item.purchased || 0}</td>
+                            <td>
+                                <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button>
+                                <span style="margin: 0 6px;">${item.used || 0}</span>
+                                <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button>
+                            </td>
+                            <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td>
+                            <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td>
+                            <td>
+                                <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態">
+                                    ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button>
+                                <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button>
+                            </td>
+                        `;
+                    } else {
+                        tr.innerHTML = `
+                            <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td>
+                            <td><strong>[${item.brand}]</strong> ${item.name}</td>
+                            <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td>
+                            <td>
+                                <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態">
+                                    ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button>
+                                <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button>
+                            </td>
+                        `;
+                    }
                     tbody.appendChild(tr);
                 }
             });
@@ -487,8 +579,8 @@
         function adjustUsed(id, delta) {
             var item = inventory.find(function(i) { return i.id === id; });
             if (item) {
-                var newUsed = item.used + delta;
-                if (newUsed >= 0 && newUsed <= item.purchased) {
+                var newUsed = (item.used || 0) + delta;
+                if (newUsed >= 0 && newUsed <= (item.purchased || 0)) {
                     item.used = newUsed;
                     saveUserData();
                     renderTable();
@@ -507,62 +599,24 @@
             }
         }
 
-        function toggleBarcodeScanner() {
-            var container = document.getElementById("scanner-container");
-            if (container.style.display === "block") {
-                stopBarcodeScanner();
-            } else {
-                startBarcodeScanner();
-            }
-        }
-
-        function startBarcodeScanner() {
-            document.getElementById("scanner-container").style.display = "block";
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5Qrcode("reader");
-            }
-            html5QrcodeScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 150 } },
-                onScanSuccess,
-                onScanFailure
-            ).catch(function(err) {
-                showToast("無法存取相機，請確認已允許權限。");
-                stopBarcodeScanner();
-            });
-        }
-
-        function stopBarcodeScanner() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(function() {
-                    document.getElementById("scanner-container").style.display = "none";
-                }).catch(function(err) {
-                    document.getElementById("scanner-container").style.display = "none";
-                });
-            } else {
-                document.getElementById("scanner-container").style.display = "none";
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById("inputBarcode").value = decodedText;
-            showToast("成功讀取條碼：" + decodedText);
-            stopBarcodeScanner();
-            checkManualBarcodeLookup(decodedText);
-        }
-
-        function onScanFailure(error) {}
-
         function openAddModal() {
-            document.getElementById("modalTitle").innerText = "新增項目";
+            document.getElementById("modalTitle").innerText = "新增" + currentProductType + "資料";
             document.getElementById("editId").value = "";
             document.getElementById("inputBrand").value = "";
             document.getElementById("inputCategory").value = "💧 保濕鎖水";
             document.getElementById("inputName").value = "";
-            document.getElementById("inputPurchased").value = 10;
+            document.getElementById("inputPurchased").value = 1;
             document.getElementById("inputUsed").value = 0;
             document.getElementById("inputExpiry").value = "";
             document.getElementById("inputNeedReorder").checked = false;
+
+            var qtyGroup = document.getElementById("quantityGroup");
+            if (currentProductType === "面膜" || currentProductType === "精華") {
+                qtyGroup.style.display = "flex";
+            } else {
+                qtyGroup.style.display = "none";
+            }
+
             document.getElementById("itemModal").style.display = "flex";
         }
 
@@ -570,15 +624,24 @@
             var item = inventory.find(function(i) { return i.id === id; });
             if (!item) return;
 
-            document.getElementById("modalTitle").innerText = "編輯資料";
+            document.getElementById("modalTitle").innerText = "編輯" + (item.type || '面膜') + "資料";
             document.getElementById("editId").value = item.id;
             document.getElementById("inputBrand").value = item.brand;
             document.getElementById("inputCategory").value = item.category;
             document.getElementById("inputName").value = item.name;
-            document.getElementById("inputPurchased").value = item.purchased;
-            document.getElementById("inputUsed").value = item.used;
-            document.getElementById("inputExpiry").value = item.expiry;
+            document.getElementById("inputPurchased").value = item.purchased || 0;
+            document.getElementById("inputUsed").value = item.used || 0;
+            document.getElementById("inputExpiry").value = item.expiry || "";
             document.getElementById("inputNeedReorder").checked = checkIsReorderNeeded(item);
+
+            var itemType = item.type || '面膜';
+            var qtyGroup = document.getElementById("quantityGroup");
+            if (itemType === "面膜" || itemType === "精華") {
+                qtyGroup.style.display = "flex";
+            } else {
+                qtyGroup.style.display = "none";
+            }
+
             document.getElementById("itemModal").style.display = "flex";
         }
 
@@ -616,6 +679,7 @@
                 var newId = inventory.length ? Math.max.apply(Math, inventory.map(function(i) { return i.id; })) + 1 : 1;
                 inventory.push({
                     id: newId,
+                    type: currentProductType,
                     brand: brand,
                     category: category,
                     name: name,
@@ -746,6 +810,12 @@
             if (savedData) {
                 try {
                     inventory = JSON.parse(savedData);
+                    // 自動更新舊數據中 Sumi 改為 VITAL
+                    inventory.forEach(function(item) {
+                        if (item.brand === "Sumi" && item.name.indexOf("號：") !== -1) {
+                            item.brand = "VITAL";
+                        }
+                    });
                 } catch(e) {
                     inventory = [];
                 }
@@ -753,8 +823,15 @@
                 inventory = [];
             }
 
-            if (norm === "funfun" && (!inventory || inventory.length === 0)) {
-                inventory = JSON.parse(JSON.stringify(defaultInventory));
+            if (norm === "funfun") {
+                // 自動補齊預設的面膜與精華
+                var existingMap = {};
+                inventory.forEach(function(item) { existingMap[item.id] = true; });
+                defaultInventory.forEach(function(defItem) {
+                    if (!existingMap[defItem.id]) {
+                        inventory.push(JSON.parse(JSON.stringify(defItem)));
+                    }
+                });
                 localStorage.setItem(storageKey, JSON.stringify(inventory));
             }
         }
@@ -830,7 +907,7 @@
 
         window.onload = function() {
             initUsers();
-            renderTable();
+            switchProductType("面膜");
         };
     </script>
 </body>
