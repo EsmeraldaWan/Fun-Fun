@@ -6,14 +6,14 @@
 <title>面膜庫存管理系統</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-body { background-color: #f3f4f6; color: #1f2937; padding: 16px; font-size: 14px; }
+body { background-color: #f3f4f6; color: #1f2937; padding: 16px; font-size: 14px; padding-bottom: 80px; }
 .container { max-width: 900px; margin: 0 auto; }
 .header { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; text-align: center; }
 .header h1 { font-size: 22px; color: #111827; margin-bottom: 6px; }
 .header p { color: #6b7280; font-size: 13px; }
-.user-bar { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.user-bar { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.stat-card { background: #ffffff; padding: 14px; border-radius: 10px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 2px solid transparent; }
+.stat-card { background: #ffffff; padding: 14px; border-radius: 10px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 2px solid transparent; cursor: pointer; }
 .stat-card.active { border-color: #2563eb; background-color: #eff6ff; }
 .stat-card .num { font-size: 20px; font-weight: bold; margin-top: 4px; }
 .c-blue { color: #2563eb; } .c-pink { color: #db2777; } .c-orange { color: #ea580c; } .c-red { color: #dc2626; }
@@ -42,7 +42,10 @@ tr:hover { background: #f9fafb; }
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #374151; }
 .form-control { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
-.toast { position: fixed; bottom: 20px; right: 20px; background: #111827; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; display: none; z-index: 200; }
+.toast { position: fixed; bottom: 80px; right: 20px; background: #111827; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; display: none; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+/* 右下角固定儲存按鈕 */
+.fixed-save-btn { position: fixed; bottom: 20px; right: 20px; z-index: 99; background: #2563eb; color: #ffffff; border: none; padding: 12px 20px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.fixed-save-btn:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
@@ -54,25 +57,29 @@ tr:hover { background: #f9fafb; }
 <div class="user-bar">
 <div style="display: flex; align-items: center; gap: 8px;">
 <span style="font-weight: bold; color: #1e3a8a;">👤 當前使用者空間：</span>
-<span style="font-weight: bold; color: #1d4ed8; font-size: 16px;">Fun Fun</span>
+<span style="font-weight: bold; color: #1d4ed8; font-size: 16px;" id="currentUserLabel">YUK YUK</span>
+</div>
+<div style="display: flex; gap: 6px;">
+<input type="text" id="userInput" class="search-input" placeholder="切換使用者名稱" style="min-width: 130px; padding: 4px 8px;">
+<button class="btn btn-primary" style="padding: 4px 10px;" onclick="switchUser()">切換用戶</button>
 </div>
 </div>
 <div class="stats-grid">
 <div class="stat-card active" id="cardTotalItems">
 <div style="color: #6b7280; font-size: 12px;">總品項數 (全部)</div>
-<div class="num c-blue" id="statTotalItems">15</div>
+<div class="num c-blue" id="statTotalItems">0</div>
 </div>
 <div class="stat-card" id="cardTotalSheets">
 <div style="color: #6b7280; font-size: 12px;">剩餘總數量</div>
-<div class="num c-pink" id="statTotalSheets">121</div>
+<div class="num c-pink" id="statTotalSheets">0</div>
 </div>
 <div class="stat-card" id="cardReorder">
 <div style="color: #6b7280; font-size: 12px;">需要加單品項 🚨</div>
-<div class="num c-orange" id="statReorder">1</div>
+<div class="num c-orange" id="statReorder">0</div>
 </div>
 <div class="stat-card" id="cardExpiring">
 <div style="color: #6b7280; font-size: 12px;">即將過期 (90天內) ⚠️</div>
-<div class="num c-red" id="statExpiring">2</div>
+<div class="num c-red" id="statExpiring">0</div>
 </div>
 </div>
 <div class="controls">
@@ -110,6 +117,10 @@ tr:hover { background: #f9fafb; }
 </table>
 </div>
 </div>
+<!-- 右下角浮動儲存按鈕 -->
+<button class="fixed-save-btn" onclick="manualSave()">
+💾 儲存所有變更
+</button>
 <!-- 新增 / 編輯 Modal -->
 <div class="modal-overlay" id="itemModal">
 <div class="modal">
@@ -169,24 +180,44 @@ tr:hover { background: #f9fafb; }
 </div>
 <div class="toast" id="toast">提示訊息</div>
 <script>
-var inventory = [
-{ id: 1, brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
-{ id: 2, brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
-{ id: 12, brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
-{ id: 3, brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
-{ id: 4, brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
-{ id: 5, brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
-{ id: 6, brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
-{ id: 7, brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
-{ id: 8, brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
-{ id: 9, brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
-{ id: 10, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
-{ id: 11, brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
-{ id: 13, brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-{ id: 14, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-{ id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
-];
+// 預設為 YUK YUK
+var currentUser = localStorage.getItem("mask_current_user") || "YUK YUK";
+var inventory = [];
 var deletingId = null;
+function loadUserData() {
+var saved = localStorage.getItem("mask_data_" + currentUser);
+if (saved) {
+try {
+inventory = JSON.parse(saved);
+} catch(e) {
+inventory = [];
+}
+} else {
+inventory = [];
+saveUserData();
+}
+document.getElementById("currentUserLabel").innerText = currentUser;
+}
+function saveUserData() {
+localStorage.setItem("mask_data_" + currentUser, JSON.stringify(inventory));
+localStorage.setItem("mask_current_user", currentUser);
+}
+function manualSave() {
+saveUserData();
+showToast("💾 變更已成功儲存至「" + currentUser + "」空間！");
+}
+function switchUser() {
+var name = document.getElementById("userInput").value.trim();
+if (!name) {
+showToast("請輸入使用者名稱！");
+return;
+}
+currentUser = name;
+document.getElementById("userInput").value = "";
+loadUserData();
+renderTable();
+showToast("已成功切換至使用者：" + currentUser);
+}
 function showToast(msg) {
 var toast = document.getElementById("toast");
 toast.innerText = msg;
@@ -248,7 +279,7 @@ if (matchSearch && matchCat && matchReorder) {
 var remaining = item.purchased - item.used;
 var tr = document.createElement("tr");
 var expiryStyle = isExpiring ? "color:#dc2626; font-weight:bold;" : "";
-tr.innerHTML = <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td> <td><strong>[${item.brand}]</strong> ${item.name}</td> <td>${item.purchased}</td> <td> <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button> <span style="margin: 0 6px;">${item.used}</span> <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button> </td> <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td> <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td> <td> <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態"> ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'} </span> </td> <td> <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button> <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button> </td>;
+tr.innerHTML = ⁠<td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td> <td><strong>[${item.brand}]</strong> ${item.name}</td> <td>${item.purchased}</td> <td> <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button> <span style="margin: 0 6px;">${item.used}</span> <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button> </td> <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td> <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td> <td> <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態"> ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'} </span> </td> <td> <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button> <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button> </td>⁠;
 tbody.appendChild(tr);
 }
 });
@@ -260,6 +291,7 @@ if (item) {
 var newUsed = item.used + delta;
 if (newUsed >= 0 && newUsed <= item.purchased) {
 item.used = newUsed;
+saveUserData();
 renderTable();
 }
 }
@@ -269,6 +301,7 @@ var item = inventory.find(i => i.id === id);
 if (item) {
 var currentStatus = checkIsReorderNeeded(item);
 item.reorderOverride = !currentStatus;
+saveUserData();
 renderTable();
 showToast(item.reorderOverride ? "已標記為：需要加單" : "已標記為：無需加單");
 }
@@ -339,9 +372,10 @@ expiry: expiry,
 reorderOverride: needReorder
 });
 }
+saveUserData();
 closeModal();
 renderTable();
-showToast("儲存成功！");
+showToast("資料已新增並儲存！");
 }
 function openConfirmModal(id) {
 deletingId = id;
@@ -354,13 +388,16 @@ document.getElementById("confirmModal").style.display = "none";
 document.getElementById("confirmDeleteBtn").onclick = function() {
 if (deletingId !== null) {
 inventory = inventory.filter(i => i.id !== deletingId);
+saveUserData();
 renderTable();
 closeConfirmModal();
-showToast("已刪除項目");
+showToast("已刪除項目並更新");
 }
 };
-// 頁面一載入立刻渲染 15 款面膜
+window.onload = function() {
+loadUserData();
 renderTable();
+};
 </script>
 </body>
 </html>
