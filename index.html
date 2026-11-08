@@ -22,6 +22,7 @@
         .search-input { flex: 1; min-width: 180px; }
         .btn { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 13px; }
         .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; }
         .table-container { background: #ffffff; border-radius: 10px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
@@ -37,7 +38,7 @@
         .counter-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid #d1d5db; background: #fff; font-weight: bold; cursor: pointer; }
         .counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 100; padding: 16px; }
-        .modal { background: #fff; padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .modal { background: #fff; padding: 20px; border-radius: 12px; max-width: 450px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
         .modal h2 { margin-bottom: 14px; font-size: 18px; }
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #374151; }
@@ -184,7 +185,7 @@
             </div>
 
             <div class="form-group">
-                <label>條碼 (Barcode / EAN) <button type="button" class="scan-btn" onclick="toggleBarcodeScanner()">📷 掃描條碼</button></label>
+                <label>條碼 (Barcode) <button type="button" class="scan-btn" onclick="toggleBarcodeScanner()">📷 掃描條碼</button></label>
                 <input type="text" id="inputBarcode" class="form-control" placeholder="可手動輸入或掃描條碼" oninput="checkManualBarcodeLookup(this.value)">
                 <div id="scanner-container">
                     <div id="reader"></div>
@@ -249,6 +250,38 @@
     <div class="toast" id="toast">提示訊息</div>
 
     <script>
+        var defaultInventory = [
+            { id: 1, barcode: "", brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
+            { id: 2, barcode: "", brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 12, barcode: "", brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 3, barcode: "", brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
+            { id: 4, barcode: "", brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
+            { id: 5, barcode: "", brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
+            { id: 6, barcode: "", brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
+            { id: 7, barcode: "", brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
+            { id: 8, barcode: "", brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
+            { id: 9, barcode: "", brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
+            { id: 10, barcode: "", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
+            { id: 11, barcode: "", brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
+            { id: 13, barcode: "", brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 14, barcode: "", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 15, barcode: "", brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
+        ];
+
+        var inventory = [];
+        var userList = ["Funfun", "YUK YUK"];
+        var currentUser = "Funfun";
+        var deletingId = null;
+        var currentStatFilter = "ALL";
+        var html5QrcodeScanner = null;
+
+        function showToast(msg) {
+            var toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.style.display = "block";
+            setTimeout(function() { toast.style.display = "none"; }, 2500);
+        }
+
         function checkManualBarcodeLookup(val) {
             var barcodeVal = val.trim();
             if (!barcodeVal) return;
@@ -331,7 +364,7 @@
             } catch (err) {
                 console.error(err);
                 statusDiv.style.display = "none";
-                showToast("辨識失敗或網絡錯誤，請再試一次。");
+                showToast("辨識失敗，請改用手動輸入。");
             }
             event.target.value = "";
         }
@@ -343,14 +376,6 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById("inputBarcode").value = decodedText;
-            showToast("成功讀取條碼：" + decodedText);
-            stopBarcodeScanner();
-
-            checkManualBarcodeLookup(decodedText);
         }
 
         function getCategoryClass(cat) {
@@ -532,14 +557,7 @@
             document.getElementById("inputBarcode").value = decodedText;
             showToast("成功讀取條碼：" + decodedText);
             stopBarcodeScanner();
-
-            var found = inventory.find(function(item) { return item.barcode === decodedText; });
-            if (found) {
-                document.getElementById("inputBrand").value = found.brand;
-                document.getElementById("inputName").value = found.name;
-                document.getElementById("inputCategory").value = found.category;
-                showToast("已自動帶入已存在的面膜：「" + found.name + "」");
-            }
+            checkManualBarcodeLookup(decodedText);
         }
 
         function onScanFailure(error) {}
@@ -651,7 +669,6 @@
             }
         };
 
-        // 安全地清理舊名稱格式（去除空格並統一配對）
         function normalizeUserName(name) {
             if (!name) return "funfun";
             var clean = name.replace(/\s+/g, "").toLowerCase();
@@ -667,7 +684,6 @@
                 } catch(e) {}
             }
             
-            // 淨化選單，避免重複包含 "Fun Fun" 和 "Funfun"
             var cleanList = ["Funfun", "YUK YUK"];
             userList.forEach(function(u) {
                 var norm = normalizeUserName(u);
@@ -740,7 +756,6 @@
             var storageKey = "mask_inventory_" + norm;
             var savedData = localStorage.getItem(storageKey);
             
-            // 嘗試從舊Key ("mask_inventory_fun fun" / "mask_inventory_funfun") 中復原
             if (!savedData && norm === "funfun") {
                 savedData = localStorage.getItem("mask_inventory_fun fun") || localStorage.getItem("mask_inventory_funfun");
             }
@@ -755,7 +770,6 @@
                 inventory = [];
             }
 
-            // 防護保險機制：若為 Funfun / Fun Fun 帳戶且資料為空，自動補齊 15 款面膜
             if (norm === "funfun" && (!inventory || inventory.length === 0)) {
                 inventory = JSON.parse(JSON.stringify(defaultInventory));
                 localStorage.setItem(storageKey, JSON.stringify(inventory));
