@@ -425,6 +425,149 @@
             }
         };
 
+        // 帳號管理邏輯與初始化修復
+        function initUsers() {
+            var savedList = localStorage.getItem("mask_user_list");
+            if (savedList) {
+                try {
+                    userList = JSON.parse(savedList);
+                } catch(e) {}
+            }
+            if (!userList || userList.length === 0) {
+                userList = ["Funfun", "YUK YUK"];
+            }
+
+            var savedCurrentUser = localStorage.getItem("mask_current_user");
+            if (savedCurrentUser) {
+                var match = userList.find(function(u) { return u.toLowerCase() === savedCurrentUser.toLowerCase(); });
+                if (match) currentUser = match;
+            } else {
+                currentUser = "Funfun";
+            }
+
+            renderUserSelect();
+            loadUserData(currentUser);
+        }
+
+        function renderUserSelect() {
+            var select = document.getElementById("userSelect");
+            select.innerHTML = "";
+            userList.forEach(function(u) {
+                var opt = document.createElement("option");
+                opt.value = u;
+                opt.innerText = u;
+                if (u.toLowerCase() === currentUser.toLowerCase()) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        function handleUserSelectChange() {
+            var select = document.getElementById("userSelect");
+            switchUser(select.value);
+        }
+
+        function switchUser(targetUser) {
+            saveUserData(); // 儲存舊帳號
+            var match = userList.find(function(u) { return u.toLowerCase() === targetUser.toLowerCase(); });
+            if (match) {
+                currentUser = match;
+            } else {
+                currentUser = targetUser;
+                userList.push(targetUser);
+                localStorage.setItem("mask_user_list", JSON.stringify(userList));
+            }
+            localStorage.setItem("mask_current_user", currentUser);
+            renderUserSelect();
+            loadUserData(currentUser);
+            renderTable();
+            showToast("已切換至空間：" + currentUser);
+        }
+
+        function loadUserData(user) {
+            var storageKey = "mask_inventory_" + user.toLowerCase();
+            var savedData = localStorage.getItem(storageKey);
+            
+            if (savedData) {
+                try {
+                    inventory = JSON.parse(savedData);
+                } catch(e) {
+                    inventory = [];
+                }
+            } else {
+                if (user.toLowerCase() === "funfun" || user.toLowerCase() === "fun fun") {
+                    inventory = JSON.parse(JSON.stringify(defaultInventory));
+                    localStorage.setItem(storageKey, JSON.stringify(inventory));
+                } else {
+                    inventory = [];
+                }
+            }
+        }
+
+        function saveUserData() {
+            var storageKey = "mask_inventory_" + currentUser.toLowerCase();
+            localStorage.setItem(storageKey, JSON.stringify(inventory));
+            localStorage.setItem("mask_user_list", JSON.stringify(userList));
+            localStorage.setItem("mask_current_user", currentUser);
+        }
+
+        function manualSave() {
+            saveUserData();
+            showToast("💾 已手動儲存所有變更！");
+        }
+
+        function openAddUserModal() {
+            document.getElementById("newUserNameInput").value = "";
+            document.getElementById("addUserModal").style.display = "flex";
+        }
+        function closeAddUserModal() {
+            document.getElementById("addUserModal").style.display = "none";
+        }
+        function confirmAddUser() {
+            var inputName = document.getElementById("newUserNameInput").value.trim();
+            if (!inputName) {
+                showToast("請輸入帳號名稱！");
+                return;
+            }
+            closeAddUserModal();
+            switchUser(inputName);
+        }
+
+        function openRenameUserModal() {
+            document.getElementById("renameUserInput").value = currentUser;
+            document.getElementById("renameUserModal").style.display = "flex";
+        }
+        function closeRenameUserModal() {
+            document.getElementById("renameUserModal").style.display = "none";
+        }
+        function confirmRenameUser() {
+            var newName = document.getElementById("renameUserInput").value.trim();
+            if (!newName) {
+                showToast("請輸入新名稱！");
+                return;
+            }
+            if (newName.toLowerCase() === currentUser.toLowerCase()) {
+                closeRenameUserModal();
+                return;
+            }
+            
+            var oldStorageKey = "mask_inventory_" + currentUser.toLowerCase();
+            var newStorageKey = "mask_inventory_" + newName.toLowerCase();
+            
+            var index = userList.findIndex(function(u) { return u.toLowerCase() === currentUser.toLowerCase(); });
+            if (index !== -1) userList[index] = newName;
+            
+            localStorage.setItem(newStorageKey, JSON.stringify(inventory));
+            localStorage.removeItem(oldStorageKey);
+            
+            currentUser = newName;
+            closeRenameUserModal();
+            saveUserData();
+            renderUserSelect();
+            showToast("帳號已成功更名為：" + newName);
+        }
+
         window.onload = function() {
             initUsers();
             renderTable();
