@@ -185,15 +185,6 @@
             </div>
 
             <div class="form-group">
-                <label>條碼 (Barcode) <button type="button" class="scan-btn" onclick="toggleBarcodeScanner()">📷 掃描條碼</button></label>
-                <input type="text" id="inputBarcode" class="form-control" placeholder="可手動輸入或掃描條碼" oninput="checkManualBarcodeLookup(this.value)">
-                <div id="scanner-container">
-                    <div id="reader"></div>
-                    <button type="button" class="btn" style="background:#dc2626; color:white; padding:4px 8px; margin-top:6px; font-size:12px;" onclick="stopBarcodeScanner()">關閉相機</button>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label>品牌名稱 *</label>
                 <input type="text" id="inputBrand" class="form-control" placeholder="例如：PATRA, VITA-AGE">
             </div>
@@ -251,21 +242,21 @@
 
     <script>
         var defaultInventory = [
-            { id: 1, barcode: "", brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
-            { id: 2, barcode: "", brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 12, barcode: "", brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 3, barcode: "", brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
-            { id: 4, barcode: "", brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
-            { id: 5, barcode: "", brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
-            { id: 6, barcode: "", brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
-            { id: 7, barcode: "", brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
-            { id: 8, barcode: "", brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
-            { id: 9, barcode: "", brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
-            { id: 10, barcode: "", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
-            { id: 11, barcode: "", brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
-            { id: 13, barcode: "", brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 14, barcode: "", brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 15, barcode: "", brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
+            { id: 1, brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
+            { id: 2, brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 12, brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
+            { id: 3, brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
+            { id: 4, brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
+            { id: 5, brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
+            { id: 6, brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
+            { id: 7, brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
+            { id: 8, brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
+            { id: 9, brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
+            { id: 10, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
+            { id: 11, brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
+            { id: 13, brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 14, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
+            { id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
         ];
 
         var inventory = [];
@@ -273,25 +264,12 @@
         var currentUser = "Funfun";
         var deletingId = null;
         var currentStatFilter = "ALL";
-        var html5QrcodeScanner = null;
 
         function showToast(msg) {
             var toast = document.getElementById("toast");
             toast.innerText = msg;
             toast.style.display = "block";
             setTimeout(function() { toast.style.display = "none"; }, 2500);
-        }
-
-        function checkManualBarcodeLookup(val) {
-            var barcodeVal = val.trim();
-            if (!barcodeVal) return;
-            var found = inventory.find(function(item) { return item.barcode && item.barcode.trim() === barcodeVal; });
-            if (found) {
-                document.getElementById("inputBrand").value = found.brand;
-                document.getElementById("inputName").value = found.name;
-                document.getElementById("inputCategory").value = found.category;
-                showToast("已自動找到並填入面膜：「" + found.name + "」");
-            }
         }
 
         function triggerCameraCapture() {
@@ -331,12 +309,25 @@
                     }]
                 };
 
-                var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=";
+                // 在獨立託管網站中使用 Gemini API
+                var userApiKey = localStorage.getItem("gemini_user_api_key") || "";
+                var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" + userApiKey;
+                
                 var response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
+                if (!response.ok) {
+                    var apiKeyInput = prompt("網頁端調用 AI 辨識需要 Gemini API Key。\n請輸入您的免費 Gemini API Key（將只會安全地存於您的手機中）：");
+                    if (apiKeyInput) {
+                        localStorage.setItem("gemini_user_api_key", apiKeyInput.trim());
+                        showToast("API Key 已儲存，請重新點擊相片辨識！");
+                    }
+                    statusDiv.style.display = "none";
+                    return;
+                }
 
                 var result = await response.json();
                 statusDiv.style.display = "none";
@@ -563,10 +554,8 @@
         function onScanFailure(error) {}
 
         function openAddModal() {
-            stopBarcodeScanner();
             document.getElementById("modalTitle").innerText = "新增項目";
             document.getElementById("editId").value = "";
-            document.getElementById("inputBarcode").value = "";
             document.getElementById("inputBrand").value = "";
             document.getElementById("inputCategory").value = "💧 保濕鎖水";
             document.getElementById("inputName").value = "";
@@ -578,13 +567,11 @@
         }
 
         function openEditModal(id) {
-            stopBarcodeScanner();
             var item = inventory.find(function(i) { return i.id === id; });
             if (!item) return;
 
             document.getElementById("modalTitle").innerText = "編輯資料";
             document.getElementById("editId").value = item.id;
-            document.getElementById("inputBarcode").value = item.barcode || "";
             document.getElementById("inputBrand").value = item.brand;
             document.getElementById("inputCategory").value = item.category;
             document.getElementById("inputName").value = item.name;
@@ -596,13 +583,11 @@
         }
 
         function closeModal() {
-            stopBarcodeScanner();
             document.getElementById("itemModal").style.display = "none";
         }
 
         function saveItem() {
             var id = document.getElementById("editId").value;
-            var barcode = document.getElementById("inputBarcode").value.trim();
             var brand = document.getElementById("inputBrand").value.trim();
             var category = document.getElementById("inputCategory").value;
             var name = document.getElementById("inputName").value.trim();
@@ -619,7 +604,6 @@
             if (id) {
                 var item = inventory.find(function(i) { return i.id == id; });
                 if (item) {
-                    item.barcode = barcode;
                     item.brand = brand;
                     item.category = category;
                     item.name = name;
@@ -632,7 +616,6 @@
                 var newId = inventory.length ? Math.max.apply(Math, inventory.map(function(i) { return i.id; })) + 1 : 1;
                 inventory.push({
                     id: newId,
-                    barcode: barcode,
                     brand: brand,
                     category: category,
                     name: name,
