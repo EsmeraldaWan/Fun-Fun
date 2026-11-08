@@ -57,64 +57,18 @@
         </div>
 
         <div class="user-bar">
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span style="font-weight: bold; color: #1e3a8a;">👤 當前使用者空間：</span>
                 <select id="userSelect" class="select-input" onchange="handleUserSelectChange()" style="font-weight: bold; color: #1d4ed8; font-size: 15px; padding: 6px 12px; background: #fff; border-color: #93c5fd;">
                     <!-- JS 動態生成選項 -->
                 </select>
-                <button class="btn btn-primary" style="padding: 6px 12px; border-radius: 50%; font-size: 16px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;" onclick="openAddUserModal()" title="新增使用者">+ </button>
-            </div>
-            <div>
-                <button class="btn" style="background: #dbeafe; color: #1e40af; padding: 6px 12px;" onclick="resetFunFunData()" title="重置 Fun Fun 為預設 15 款">🔄 重置 Fun Fun 15款面膜</button>
+                <button class="btn btn-primary" style="padding: 6px 12px; border-radius: 50%; font-size: 16px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;" onclick="openAddUserModal()" title="新增使用者">+</button>
+                <button class="btn" style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; font-size: 13px;" onclick="openRenameUserModal()" title="更改目前帳號名稱">✏️ 更改名稱</button>
             </div>
         </div>
 
         <div class="stats-grid">
-            <div class="stat-card active" id="cardTotalItems">
-                <div style="color: #6b7280; font-size: 12px;">總品項數 (全部)</div>
-                <div class="num c-blue" id="statTotalItems">0</div>
-            </div>
-            <div class="stat-card" id="cardTotalSheets">
-                <div style="color: #6b7280; font-size: 12px;">剩餘總數量</div>
-                <div class="num c-pink" id="statTotalSheets">0</div>
-            </div>
-            <div class="stat-card" id="cardReorder">
-                <div style="color: #6b7280; font-size: 12px;">需要加單品項 🚨</div>
-                <div class="num c-orange" id="statReorder">0</div>
-            </div>
-            <div class="stat-card" id="cardExpiring">
-                <div style="color: #6b7280; font-size: 12px;">即將過期 (90天內) ⚠️</div>
-                <div class="num c-red" id="statExpiring">0</div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <input type="text" id="searchInput" class="search-input" placeholder="搜尋名稱或品牌..." oninput="renderTable()">
-            <select id="filterCategory" class="select-input" onchange="renderTable()">
-                <option value="ALL">全部功效 (All)</option>
-                <option value="💧 保濕鎖水">💧 保濕鎖水</option>
-                <option value="✨ 美白煥膚">✨ 美白煥膚</option>
-                <option value="🌿 舒緩修護">🌿 舒緩修護</option>
-                <option value="👑 緊緻抗老">👑 緊緻抗老</option>
-            </select>
-            <select id="filterReorder" class="select-input" onchange="renderTable()">
-                <option value="ALL">全部加單狀態</option>
-                <option value="YES">🚨 需加單</option>
-                <option value="NO">✅ 無需加單</option>
-            </select>
-            <button class="btn btn-primary" onclick="openAddModal()">+ 新增項目</button>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>功效分類</th>
-                        <th>品牌 / 產品名稱</th>
-                        <th>進貨量</th>
-                        <th>已使用</th>
-                        <th>剩餘數量</th>
-                        <th>到期日</th>
+<!-- ... existing code -->
     <!-- 新增使用者 Modal -->
     <div class="modal-overlay" id="addUserModal">
         <div class="modal" style="max-width: 350px;">
@@ -130,67 +84,23 @@
         </div>
     </div>
 
-    <!-- 新增 / 編輯 Modal -->
-    <div class="modal-overlay" id="itemModal">
-        <div class="modal">
-            <h2 id="modalTitle">新增資料</h2>
-            <input type="hidden" id="editId">
-            <div class="form-group">
-                <label>品牌名稱 *</label>
-                <input type="text" id="inputBrand" class="form-control" placeholder="例如：PATRA, VITA-AGE">
-            </div>
-            <div class="form-group">
-                <label>功效分類 *</label>
-                <select id="inputCategory" class="form-control">
-                    <option value="💧 保濕鎖水">💧 保濕鎖水</option>
-                    <option value="✨ 美白煥膚">✨ 美白煥膚</option>
-                    <option value="🌿 舒緩修護">🌿 舒緩修護</option>
-                    <option value="👑 緊緻抗老">👑 緊緻抗老</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>產品名稱 *</label>
-                <input type="text" id="inputName" class="form-control" placeholder="例如：B3 深度保濕面膜">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex:1;">
-                    <label>進貨量 *</label>
-                    <input type="number" id="inputPurchased" class="form-control" value="1" min="1">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label>已使用 *</label>
-                    <input type="number" id="inputUsed" class="form-control" value="0" min="0">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>到期日 *</label>
-                <input type="date" id="inputExpiry" class="form-control">
-            </div>
-            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
-                <input type="checkbox" id="inputNeedReorder" style="width: 16px; height: 16px;">
-                <label for="inputNeedReorder" style="margin-bottom:0; cursor:pointer;">🚨 標記為需要加單 (Need Reorder)</label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
-                <button class="btn" style="background:#e5e7eb;" onclick="closeModal()">取消</button>
-                <button class="btn btn-primary" onclick="saveItem()">儲存資料</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 刪除確認 Modal -->
-    <div class="modal-overlay" id="confirmModal">
+    <!-- 更改使用者名稱 Modal -->
+    <div class="modal-overlay" id="renameUserModal">
         <div class="modal" style="max-width: 350px;">
-            <h2>確定刪除此紀錄？</h2>
-            <p style="color: #6b7280; margin-bottom: 16px; font-size: 13px;">此動作無法復原。</p>
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                <button class="btn" style="background:#e5e7eb;" onclick="closeConfirmModal()">取消</button>
-                <button class="btn" style="background:#dc2626; color:#fff;" id="confirmDeleteBtn">確定刪除</button>
+            <h2>更改帳號名稱</h2>
+            <div class="form-group">
+                <label>請輸入新的帳號名稱 *</label>
+                <input type="text" id="renameUserInput" class="form-control" placeholder="輸入新名稱">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+                <button class="btn" style="background:#e5e7eb;" onclick="closeRenameUserModal()">取消</button>
+                <button class="btn btn-primary" onclick="confirmRenameUser()">確認重命名</button>
             </div>
         </div>
     </div>
 
-    <div class="toast" id="toast">提示訊息</div>
-
+    <!-- 新增 / 編輯 Modal -->
+<!-- ... existing code -->
     <script>
         var defaultInventory = [
             { id: 1, brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
@@ -210,8 +120,8 @@
             { id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
         ];
 
-        var userList = ["Fun Fun", "YUK YUK"];
-        var currentUser = "Fun Fun";
+        var userList = ["Funfun", "YUK YUK"];
+        var currentUser = "Funfun";
         var inventory = [];
         var deletingId = null;
 
@@ -222,15 +132,19 @@
                     userList = JSON.parse(savedUsers);
                 } catch(e){}
             }
-            if (!userList.some(u => u.toLowerCase() === "fun fun")) userList.unshift("Fun Fun");
-            if (!userList.some(u => u.toLowerCase() === "yuk yuk")) userList.push("YUK YUK");
+            if (!userList.some(u => u.toLowerCase().replace(/\s+/g, '') === "funfun")) {
+                userList.unshift("Funfun");
+            }
+            if (!userList.some(u => u.toLowerCase() === "yuk yuk")) {
+                userList.push("YUK YUK");
+            }
             
             var savedCurrent = localStorage.getItem("mask_current_user");
             if (savedCurrent) {
                 var matched = findUserCaseInsensitive(savedCurrent);
                 currentUser = matched || savedCurrent;
             } else {
-                currentUser = "Fun Fun";
+                currentUser = "Funfun";
             }
 
             renderUserSelect();
@@ -238,8 +152,8 @@
 
         function findUserCaseInsensitive(targetName) {
             if (!targetName) return null;
-            var lower = targetName.trim().toLowerCase();
-            return userList.find(u => u.toLowerCase() === lower) || null;
+            var targetClean = targetName.trim().toLowerCase().replace(/\s+/g, '');
+            return userList.find(u => u.trim().toLowerCase().replace(/\s+/g, '') === targetClean) || null;
         }
 
         function renderUserSelect() {
@@ -249,7 +163,7 @@
                 var opt = document.createElement("option");
                 opt.value = u;
                 opt.innerText = u;
-                if (u.toLowerCase() === currentUser.toLowerCase()) {
+                if (u.trim().toLowerCase().replace(/\s+/g, '') === currentUser.trim().toLowerCase().replace(/\s+/g, '')) {
                     opt.selected = true;
                 }
                 select.appendChild(opt);
@@ -279,7 +193,6 @@
                 return;
             }
             
-            // 智能檢查大小寫（不論輸入 FUN FUN / fun fun / Fun Fun 均能識別已有帳戶）
             var existingUser = findUserCaseInsensitive(inputName);
             if (existingUser) {
                 currentUser = existingUser;
@@ -297,8 +210,49 @@
             renderTable();
         }
 
+        function openRenameUserModal() {
+            document.getElementById("renameUserInput").value = currentUser;
+            document.getElementById("renameUserModal").style.display = "flex";
+        }
+
+        function closeRenameUserModal() {
+            document.getElementById("renameUserModal").style.display = "none";
+        }
+
+        function confirmRenameUser() {
+            var newName = document.getElementById("renameUserInput").value.trim();
+            if (!newName) {
+                showToast("名稱不能為空！");
+                return;
+            }
+            
+            var oldUserKey = "mask_data_" + currentUser.toLowerCase().replace(/\s+/g, '');
+            var newUserKey = "mask_data_" + newName.toLowerCase().replace(/\s+/g, '');
+
+            // 轉移資料
+            localStorage.setItem(newUserKey, JSON.stringify(inventory));
+            if (oldUserKey !== newUserKey) {
+                localStorage.removeItem(oldUserKey);
+            }
+
+            // 更新清單中的名稱
+            var index = userList.findIndex(u => u.toLowerCase().replace(/\s+/g, '') === currentUser.toLowerCase().replace(/\s+/g, ''));
+            if (index !== -1) {
+                userList[index] = newName;
+            } else {
+                userList.push(newName);
+            }
+
+            currentUser = newName;
+            saveUserData();
+            renderUserSelect();
+            closeRenameUserModal();
+            showToast("帳號名稱已更新為：「" + currentUser + "」");
+        }
+
         function loadUserData() {
-            var key = "mask_data_" + currentUser.toLowerCase();
+            var cleanKeyName = currentUser.toLowerCase().replace(/\s+/g, '');
+            var key = "mask_data_" + cleanKeyName;
             var saved = localStorage.getItem(key);
             
             if (saved) {
@@ -311,8 +265,8 @@
                 inventory = [];
             }
 
-            // 如果是 Fun Fun (無論大小寫) 且暫存為空，強行還原 15 款預設資料
-            if (currentUser.toLowerCase() === "fun fun" && (!inventory || inventory.length === 0)) {
+            // 如果是 Funfun (或舊的 Fun Fun) 且暫存為空，自動載入 15 款預設資料
+            if (cleanKeyName === "funfun" && (!inventory || inventory.length === 0)) {
                 inventory = JSON.parse(JSON.stringify(defaultInventory));
                 saveUserData();
             }
@@ -321,20 +275,11 @@
         }
 
         function saveUserData() {
-            var key = "mask_data_" + currentUser.toLowerCase();
+            var cleanKeyName = currentUser.toLowerCase().replace(/\s+/g, '');
+            var key = "mask_data_" + cleanKeyName;
             localStorage.setItem(key, JSON.stringify(inventory));
             localStorage.setItem("mask_current_user", currentUser);
             localStorage.setItem("mask_user_list", JSON.stringify(userList));
-        }
-
-        function resetFunFunData() {
-            var matchedFun = findUserCaseInsensitive("Fun Fun") || "Fun Fun";
-            currentUser = matchedFun;
-            inventory = JSON.parse(JSON.stringify(defaultInventory));
-            saveUserData();
-            renderUserSelect();
-            renderTable();
-            showToast("已重置 「Fun Fun」 空間為預設 15 款面膜！");
         }
 
         function manualSave() {
@@ -348,229 +293,4 @@
             toast.style.display = "block";
             setTimeout(function() { toast.style.display = "none"; }, 2500);
         }
-
-        function getCategoryClass(cat) {
-            if (!cat) return "bg-moist";
-            if (cat.indexOf("保濕") !== -1) return "bg-moist";
-            if (cat.indexOf("美白") !== -1) return "bg-white";
-            if (cat.indexOf("修護") !== -1) return "bg-repair";
-            return "bg-antiage";
-        }
-
-        function isExpiringSoon(expiryDateStr) {
-            if (!expiryDateStr) return false;
-            var expDate = new Date(expiryDateStr);
-            var today = new Date();
-            var diffTime = expDate - today;
-            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= 90;
-        }
-
-        function checkIsReorderNeeded(item) {
-            if (item.reorderOverride !== null && item.reorderOverride !== undefined) {
-                return item.reorderOverride;
-            }
-            return (item.purchased - item.used) <= 2;
-        }
-
-        function updateStats() {
-            var totalItems = inventory.length;
-            var totalSheets = 0;
-            var reorderCount = 0;
-            var expiringCount = 0;
-
-            inventory.forEach(function(item) {
-                var remaining = item.purchased - item.used;
-                totalSheets += remaining;
-                if (checkIsReorderNeeded(item)) reorderCount++;
-                if (isExpiringSoon(item.expiry)) expiringCount++;
-            });
-
-            document.getElementById("statTotalItems").innerText = totalItems;
-            document.getElementById("statTotalSheets").innerText = totalSheets;
-            document.getElementById("statReorder").innerText = reorderCount;
-            document.getElementById("statExpiring").innerText = expiringCount;
-        }
-
-        function renderTable() {
-            var search = document.getElementById("searchInput").value.toLowerCase();
-            var filterCat = document.getElementById("filterCategory").value;
-            var filterReorder = document.getElementById("filterReorder").value;
-
-            var tbody = document.getElementById("inventoryTable");
-            tbody.innerHTML = "";
-
-            inventory.forEach(function(item) {
-                var isReorderNeeded = checkIsReorderNeeded(item);
-                var isExpiring = isExpiringSoon(item.expiry);
-
-                var matchSearch = (item.name || "").toLowerCase().includes(search) || (item.brand || "").toLowerCase().includes(search);
-                var matchCat = (filterCat === "ALL" || item.category === filterCat);
-                var matchReorder = (filterReorder === "ALL") || 
-                                   (filterReorder === "YES" && isReorderNeeded) || 
-                                   (filterReorder === "NO" && !isReorderNeeded);
-
-                if (matchSearch && matchCat && matchReorder) {
-                    var remaining = item.purchased - item.used;
-                    var tr = document.createElement("tr");
-
-                    var expiryStyle = isExpiring ? "color:#dc2626; font-weight:bold;" : "";
-
-                    tr.innerHTML = `
-                        <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td>
-                        <td><strong>[${item.brand}]</strong> ${item.name}</td>
-                        <td>${item.purchased}</td>
-                        <td>
-                            <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button>
-                            <span style="margin: 0 6px;">${item.used}</span>
-                            <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button>
-                        </td>
-                        <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td>
-                        <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td>
-                        <td>
-                            <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態">
-                                ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button>
-                            <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-            });
-
-            updateStats();
-        }
-
-        function adjustUsed(id, delta) {
-            var item = inventory.find(i => i.id === id);
-            if (item) {
-                var newUsed = item.used + delta;
-                if (newUsed >= 0 && newUsed <= item.purchased) {
-                    item.used = newUsed;
-                    saveUserData();
-                    renderTable();
-                }
-            }
-        }
-
-        function toggleReorder(id) {
-            var item = inventory.find(i => i.id === id);
-            if (item) {
-                var currentStatus = checkIsReorderNeeded(item);
-                item.reorderOverride = !currentStatus;
-                saveUserData();
-                renderTable();
-                showToast(item.reorderOverride ? "已標記為：需要加單" : "已標記為：無需加單");
-            }
-        }
-
-        function openAddModal() {
-            document.getElementById("modalTitle").innerText = "新增項目";
-            document.getElementById("editId").value = "";
-            document.getElementById("inputBrand").value = "";
-            document.getElementById("inputCategory").value = "💧 保濕鎖水";
-            document.getElementById("inputName").value = "";
-            document.getElementById("inputPurchased").value = 10;
-            document.getElementById("inputUsed").value = 0;
-            document.getElementById("inputExpiry").value = "";
-            document.getElementById("inputNeedReorder").checked = false;
-            document.getElementById("itemModal").style.display = "flex";
-        }
-
-        function openEditModal(id) {
-            var item = inventory.find(i => i.id === id);
-            if (!item) return;
-
-            document.getElementById("modalTitle").innerText = "編輯資料";
-            document.getElementById("editId").value = item.id;
-            document.getElementById("inputBrand").value = item.brand;
-            document.getElementById("inputCategory").value = item.category;
-            document.getElementById("inputName").value = item.name;
-            document.getElementById("inputPurchased").value = item.purchased;
-            document.getElementById("inputUsed").value = item.used;
-            document.getElementById("inputExpiry").value = item.expiry;
-            document.getElementById("inputNeedReorder").checked = checkIsReorderNeeded(item);
-            document.getElementById("itemModal").style.display = "flex";
-        }
-
-        function closeModal() {
-            document.getElementById("itemModal").style.display = "none";
-        }
-
-        function saveItem() {
-            var id = document.getElementById("editId").value;
-            var brand = document.getElementById("inputBrand").value.trim();
-            var category = document.getElementById("inputCategory").value;
-            var name = document.getElementById("inputName").value.trim();
-            var purchased = parseInt(document.getElementById("inputPurchased").value) || 0;
-            var used = parseInt(document.getElementById("inputUsed").value) || 0;
-            var expiry = document.getElementById("inputExpiry").value;
-            var needReorder = document.getElementById("inputNeedReorder").checked;
-
-            if (!brand || !name) {
-                showToast("請填寫品牌名稱與產品名稱！");
-                return;
-            }
-
-            if (id) {
-                var item = inventory.find(i => i.id == id);
-                if (item) {
-                    item.brand = brand;
-                    item.category = category;
-                    item.name = name;
-                    item.purchased = purchased;
-                    item.used = used;
-                    item.expiry = expiry;
-                    item.reorderOverride = needReorder;
-                }
-            } else {
-                var newId = inventory.length ? Math.max(...inventory.map(i => i.id)) + 1 : 1;
-                inventory.push({
-                    id: newId,
-                    brand: brand,
-                    category: category,
-                    name: name,
-                    purchased: purchased,
-                    used: used,
-                    expiry: expiry,
-                    reorderOverride: needReorder
-                });
-            }
-
-            saveUserData();
-            closeModal();
-            renderTable();
-            showToast("資料已儲存！");
-        }
-
-        function openConfirmModal(id) {
-            deletingId = id;
-            document.getElementById("confirmModal").style.display = "flex";
-        }
-
-        function closeConfirmModal() {
-            deletingId = null;
-            document.getElementById("confirmModal").style.display = "none";
-        }
-
-        document.getElementById("confirmDeleteBtn").onclick = function() {
-            if (deletingId !== null) {
-                inventory = inventory.filter(i => i.id !== deletingId);
-                saveUserData();
-                renderTable();
-                closeConfirmModal();
-                showToast("已刪除項目");
-            }
-        };
-
-        window.onload = function() {
-            initUsers();
-            loadUserData();
-            renderTable();
-        };
-    </script>
-</body>
-</html>
+<!-- ... existing code -->
