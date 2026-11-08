@@ -144,7 +144,7 @@
             <h2>新增使用者帳號</h2>
             <div class="form-group">
                 <label>請輸入新帳號名稱 *</label>
-                <input type="text" id="newUserNameInput" class="form-control" placeholder="例如：Mom, Alice">
+                <input type="text" id="newUserNameInput" class="form-control" placeholder="例如：Dior, Alice">
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
                 <button class="btn" style="background:#e5e7eb;" onclick="closeAddUserModal()">取消</button>
@@ -286,8 +286,18 @@
             { id: 114, type: "精華", brand: "VITAL", category: "💧 保濕鎖水", name: "5號：PDRN 保濕鎖水精華 (Acqua Vial)", purchased: 1, used: 0, expiry: "", reorderOverride: null }
         ];
 
+        // Dior 專屬預設護膚品 (圖片包含的產品)
+        var diorDefaultInventory = [
+            { id: 201, type: "面膜", brand: "La Suisse", category: "🌿 舒緩修護", name: "JF11 多肽急救抗紅膠原面膜 (NMN SOS Anti Redness)", purchased: 10, used: 0, expiry: "", reorderOverride: null },
+            { id: 202, type: "面膜", brand: "PATRA", category: "💧 保濕鎖水", name: "B5 水光膜 (B5 Hydra-Shine Mask)", purchased: 10, used: 0, expiry: "", reorderOverride: null },
+            { id: 203, type: "面膜", brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 1, used: 0, expiry: "2029-05-20", reorderOverride: null },
+            { id: 204, type: "精華", brand: "VITA-AGE IN", category: "👑 緊緻抗老", name: "Lifting Collo e Décolleté (頸部緊緻提拉精華 50ml)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 205, type: "面霜", brand: "VITA-AGE PRESTIGE", category: "✨ 美白煥膚", name: "Perla Nera Mousse Punti Luce (黑珍珠亮采潔面慕斯 50ml)", purchased: 1, used: 0, expiry: "", reorderOverride: null },
+            { id: 206, type: "精華", brand: "VITAL", category: "👑 緊緻抗老", name: "Exosomes Serum (外泌體逆齡精華 綠盒裝)", purchased: 1, used: 0, expiry: "2028-05-05", reorderOverride: null }
+        ];
+
         var inventory = [];
-        var userList = ["Funfun", "YUK YUK"];
+        var userList = ["Funfun", "YUK YUK", "Dior"];
         var currentUser = "Funfun";
         var currentProductType = "面膜";
         var deletingId = null;
@@ -720,6 +730,7 @@
             if (!name) return "funfun";
             var clean = name.replace(/\s+/g, "").toLowerCase();
             if (clean === "funfun") return "funfun";
+            if (clean === "dior") return "dior";
             return name.trim();
         }
 
@@ -731,10 +742,10 @@
                 } catch(e) {}
             }
             
-            var cleanList = ["Funfun", "YUK YUK"];
+            var cleanList = ["Funfun", "YUK YUK", "Dior"];
             userList.forEach(function(u) {
                 var norm = normalizeUserName(u);
-                if (norm !== "funfun" && norm !== "yukyuk" && cleanList.indexOf(u) === -1) {
+                if (norm !== "funfun" && norm !== "yukyuk" && norm !== "dior" && cleanList.indexOf(u) === -1) {
                     cleanList.push(u);
                 }
             });
@@ -744,6 +755,8 @@
             if (savedCurrentUser) {
                 if (normalizeUserName(savedCurrentUser) === "funfun") {
                     currentUser = "Funfun";
+                } else if (normalizeUserName(savedCurrentUser) === "dior") {
+                    currentUser = "Dior";
                 } else {
                     currentUser = savedCurrentUser;
                 }
@@ -779,6 +792,8 @@
             
             if (normalizeUserName(targetUser) === "funfun") {
                 currentUser = "Funfun";
+            } else if (normalizeUserName(targetUser) === "dior") {
+                currentUser = "Dior";
             } else {
                 var match = userList.find(function(u) { return normalizeUserName(u) === normalizeUserName(targetUser); });
                 if (match) {
@@ -810,12 +825,6 @@
             if (savedData) {
                 try {
                     inventory = JSON.parse(savedData);
-                    // 自動更新舊數據中 Sumi 改為 VITAL
-                    inventory.forEach(function(item) {
-                        if (item.brand === "Sumi" && item.name.indexOf("號：") !== -1) {
-                            item.brand = "VITAL";
-                        }
-                    });
                 } catch(e) {
                     inventory = [];
                 }
@@ -824,11 +833,19 @@
             }
 
             if (norm === "funfun") {
-                // 自動補齊預設的面膜與精華
                 var existingMap = {};
                 inventory.forEach(function(item) { existingMap[item.id] = true; });
                 defaultInventory.forEach(function(defItem) {
                     if (!existingMap[defItem.id]) {
+                        inventory.push(JSON.parse(JSON.stringify(defItem)));
+                    }
+                });
+                localStorage.setItem(storageKey, JSON.stringify(inventory));
+            } else if (norm === "dior") {
+                var existingDiorMap = {};
+                inventory.forEach(function(item) { existingDiorMap[item.id] = true; });
+                diorDefaultInventory.forEach(function(defItem) {
+                    if (!existingDiorMap[defItem.id]) {
                         inventory.push(JSON.parse(JSON.stringify(defItem)));
                     }
                 });
@@ -894,7 +911,7 @@
             if (index !== -1) userList[index] = newName;
             
             localStorage.setItem(newStorageKey, JSON.stringify(inventory));
-            if (oldNorm !== "funfun") {
+            if (oldNorm !== "funfun" && oldNorm !== "dior") {
                 localStorage.removeItem(oldStorageKey);
             }
             
