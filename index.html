@@ -46,7 +46,15 @@
         
         .fixed-save-btn { position: fixed; bottom: 20px; right: 20px; z-index: 99; background: #2563eb; color: #ffffff; border: none; padding: 12px 20px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .fixed-save-btn:active { transform: scale(0.95); }
+
+        /* 相機掃描樣式 */
+        .scan-btn { background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+        .scan-btn:hover { background: #047857; }
+        #scanner-container { display: none; margin-top: 10px; border: 2px dashed #059669; border-radius: 8px; padding: 8px; text-align: center; background: #f0fdf4; }
+        #reader { width: 100%; max-width: 300px; margin: 0 auto; }
     </style>
+    <!-- 引入條碼掃描函式庫 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -162,6 +170,16 @@
         <div class="modal">
             <h2 id="modalTitle">新增資料</h2>
             <input type="hidden" id="editId">
+            
+            <div class="form-group">
+                <label>條碼 (Barcode / EAN) <button type="button" class="scan-btn" onclick="toggleBarcodeScanner()">📷 掃描條碼</button></label>
+                <input type="text" id="inputBarcode" class="form-control" placeholder="可手動輸入或掃描條碼">
+                <div id="scanner-container">
+                    <div id="reader"></div>
+                    <button type="button" class="btn" style="background:#dc2626; color:white; padding:4px 8px; margin-top:6px; font-size:12px;" onclick="stopBarcodeScanner()">關閉相機</button>
+                </div>
+            </div>
+
             <div class="form-group">
                 <label>品牌名稱 *</label>
                 <input type="text" id="inputBrand" class="form-control" placeholder="例如：PATRA, VITA-AGE">
@@ -242,315 +260,69 @@
         var inventory = [];
         var deletingId = null;
         var currentStatFilter = "ALL";
+        var html5QrcodeScanner = null;
 
-        function initUsers() {
-            var savedUsers = localStorage.getItem("mask_user_list");
-            if (savedUsers) {
-                try {
-                    userList = JSON.parse(savedUsers);
-                } catch(e){}
-            }
-            if (!userList.some(function(u) { return u.toLowerCase().replace(/\s+/g, '') === "funfun"; })) {
-                userList.unshift("Funfun");
-            }
-            if (!userList.some(function(u) { return u.toLowerCase() === "yuk yuk"; })) {
-                userList.push("YUK YUK");
-            }
-            
-            var savedCurrent = localStorage.getItem("mask_current_user");
-            if (savedCurrent) {
-                var matched = findUserCaseInsensitive(savedCurrent);
-                currentUser = matched || savedCurrent;
+        function toggleBarcodeScanner() {
+            var container = document.getElementById("scanner-container");
+            if (container.style.display === "block") {
+                stopBarcodeScanner();
             } else {
-                currentUser = "Funfun";
+                startBarcodeScanner();
             }
-
-            renderUserSelect();
-            loadUserData();
         }
 
-        function findUserCaseInsensitive(targetName) {
-            if (!targetName) return null;
-            var targetClean = targetName.trim().toLowerCase().replace(/\s+/g, '');
-            return userList.find(function(u) { return u.trim().toLowerCase().replace(/\s+/g, '') === targetClean; }) || null;
-        }
-
-        function renderUserSelect() {
-            var select = document.getElementById("userSelect");
-            select.innerHTML = "";
-            userList.forEach(function(u) {
-                var opt = document.createElement("option");
-                opt.value = u;
-                opt.innerText = u;
-                if (u.trim().toLowerCase().replace(/\s+/g, '') === currentUser.trim().toLowerCase().replace(/\s+/g, '')) {
-                    opt.selected = true;
-                }
-                select.appendChild(opt);
+        function startBarcodeScanner() {
+            document.getElementById("scanner-container").style.display = "block";
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader");
+            }
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 150 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(function(err) {
+                showToast("無法存取相機，請確認已允許權限。");
+                stopBarcodeScanner();
             });
         }
 
-        function handleUserSelectChange() {
-            currentUser = document.getElementById("userSelect").value;
-            loadUserData();
-            renderTable();
-            showToast("已切換至使用者：「" + currentUser + "」");
-        }
-
-        function openAddUserModal() {
-            document.getElementById("newUserNameInput").value = "";
-            document.getElementById("addUserModal").style.display = "flex";
-        }
-
-        function closeAddUserModal() {
-            document.getElementById("addUserModal").style.display = "none";
-        }
-
-        function confirmAddUser() {
-            var inputName = document.getElementById("newUserNameInput").value.trim();
-            if (!inputName) {
-                showToast("請輸入有效名稱！");
-                return;
-            }
-            
-            var existingUser = findUserCaseInsensitive(inputName);
-            if (existingUser) {
-                currentUser = existingUser;
-                showToast("已自動連結至現有帳號：「" + currentUser + "」");
+        function stopBarcodeScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(function() {
+                    document.getElementById("scanner-container").style.display = "none";
+                }).catch(function(err) {
+                    document.getElementById("scanner-container").style.display = "none";
+                });
             } else {
-                userList.push(inputName);
-                currentUser = inputName;
-                localStorage.setItem("mask_user_list", JSON.stringify(userList));
-                showToast("已成功新增並切換至：「" + currentUser + "」");
-            }
-
-            renderUserSelect();
-            closeAddUserModal();
-            loadUserData();
-            renderTable();
-        }
-
-        function openRenameUserModal() {
-            document.getElementById("renameUserInput").value = currentUser;
-            document.getElementById("renameUserModal").style.display = "flex";
-        }
-
-        function closeRenameUserModal() {
-            document.getElementById("renameUserModal").style.display = "none";
-        }
-
-        function confirmRenameUser() {
-            var newName = document.getElementById("renameUserInput").value.trim();
-            if (!newName) {
-                showToast("名稱不能為空！");
-                return;
-            }
-            
-            var oldUserKey = "mask_data_" + currentUser.toLowerCase().replace(/\s+/g, '');
-            var newUserKey = "mask_data_" + newName.toLowerCase().replace(/\s+/g, '');
-
-            localStorage.setItem(newUserKey, JSON.stringify(inventory));
-            if (oldUserKey !== newUserKey) {
-                localStorage.removeItem(oldUserKey);
-            }
-
-            var index = userList.findIndex(function(u) { return u.toLowerCase().replace(/\s+/g, '') === currentUser.toLowerCase().replace(/\s+/g, ''); });
-            if (index !== -1) {
-                userList[index] = newName;
-            } else {
-                userList.push(newName);
-            }
-
-            currentUser = newName;
-            saveUserData();
-            renderUserSelect();
-            closeRenameUserModal();
-            showToast("帳號名稱已更新為：「" + currentUser + "」");
-        }
-
-        function loadUserData() {
-            var cleanKeyName = currentUser.toLowerCase().replace(/\s+/g, '');
-            var key = "mask_data_" + cleanKeyName;
-            var saved = localStorage.getItem(key);
-            
-            if (saved) {
-                try {
-                    inventory = JSON.parse(saved);
-                } catch(e) {
-                    inventory = [];
-                }
-            } else {
-                inventory = [];
-            }
-
-            if ((cleanKeyName === "funfun" || cleanKeyName === "funfun") && (!inventory || inventory.length === 0)) {
-                inventory = JSON.parse(JSON.stringify(defaultInventory));
-                saveUserData();
-            }
-
-            localStorage.setItem("mask_current_user", currentUser);
-        }
-
-        function saveUserData() {
-            var cleanKeyName = currentUser.toLowerCase().replace(/\s+/g, '');
-            var key = "mask_data_" + cleanKeyName;
-            localStorage.setItem(key, JSON.stringify(inventory));
-            localStorage.setItem("mask_current_user", currentUser);
-            localStorage.setItem("mask_user_list", JSON.stringify(userList));
-        }
-
-        function manualSave() {
-            saveUserData();
-            showToast("💾 已成功儲存「" + currentUser + "」的所有變更！");
-        }
-
-        function showToast(msg) {
-            var toast = document.getElementById("toast");
-            toast.innerText = msg;
-            toast.style.display = "block";
-            setTimeout(function() { toast.style.display = "none"; }, 2500);
-        }
-
-        function getCategoryClass(cat) {
-            if (!cat) return "bg-moist";
-            if (cat.indexOf("保濕") !== -1) return "bg-moist";
-            if (cat.indexOf("美白") !== -1) return "bg-white";
-            if (cat.indexOf("修護") !== -1) return "bg-repair";
-            return "bg-antiage";
-        }
-
-        function isExpiringSoon(expiryDateStr) {
-            if (!expiryDateStr) return false;
-            var expDate = new Date(expiryDateStr);
-            var today = new Date();
-            var diffTime = expDate - today;
-            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= 90;
-        }
-
-        function checkIsReorderNeeded(item) {
-            if (item.reorderOverride !== null && item.reorderOverride !== undefined) {
-                return item.reorderOverride;
-            }
-            return (item.purchased - item.used) <= 2;
-        }
-
-        function updateStats() {
-            var totalItems = inventory.length;
-            var totalSheets = 0;
-            var reorderCount = 0;
-            var expiringCount = 0;
-
-            inventory.forEach(function(item) {
-                var remaining = item.purchased - item.used;
-                totalSheets += remaining;
-                if (checkIsReorderNeeded(item)) reorderCount++;
-                if (isExpiringSoon(item.expiry)) expiringCount++;
-            });
-
-            document.getElementById("statTotalItems").innerText = totalItems;
-            document.getElementById("statTotalSheets").innerText = totalSheets;
-            document.getElementById("statReorder").innerText = reorderCount;
-            document.getElementById("statExpiring").innerText = expiringCount;
-        }
-
-        function resetStatCardsHighlight() {
-            document.querySelectorAll(".stat-card").forEach(function(c) { c.classList.remove("active"); });
-        }
-
-        function filterByStat(type) {
-            currentStatFilter = type;
-            resetStatCardsHighlight();
-
-            if (type === 'ALL') {
-                document.getElementById("cardTotalItems").classList.add("active");
-                document.getElementById("filterReorder").value = "ALL";
-            } else if (type === 'REORDER') {
-                document.getElementById("cardReorder").classList.add("active");
-                document.getElementById("filterReorder").value = "YES";
-            } else if (type === 'EXPIRING') {
-                document.getElementById("cardExpiring").classList.add("active");
-                document.getElementById("filterReorder").value = "ALL";
-            }
-            renderTable();
-        }
-
-        function renderTable() {
-            var search = document.getElementById("searchInput").value.toLowerCase();
-            var filterCat = document.getElementById("filterCategory").value;
-            var filterReorder = document.getElementById("filterReorder").value;
-
-            var tbody = document.getElementById("inventoryTable");
-            tbody.innerHTML = "";
-
-            inventory.forEach(function(item) {
-                var isReorderNeeded = checkIsReorderNeeded(item);
-                var isExpiring = isExpiringSoon(item.expiry);
-
-                var matchSearch = (item.name || "").toLowerCase().includes(search) || (item.brand || "").toLowerCase().includes(search);
-                var matchCat = (filterCat === "ALL" || item.category === filterCat);
-                var matchReorder = (filterReorder === "ALL") || 
-                                   (filterReorder === "YES" && isReorderNeeded) || 
-                                   (filterReorder === "NO" && !isReorderNeeded);
-                var matchStatFilter = (currentStatFilter !== 'EXPIRING') || isExpiring;
-
-                if (matchSearch && matchCat && matchReorder && matchStatFilter) {
-                    var remaining = item.purchased - item.used;
-                    var tr = document.createElement("tr");
-
-                    var expiryStyle = isExpiring ? "color:#dc2626; font-weight:bold;" : "";
-
-                    tr.innerHTML = '<td><span class="tag ' + getCategoryClass(item.category) + '">' + item.category + '</span></td>' +
-                        '<td><strong>[' + item.brand + ']</strong> ' + item.name + '</td>' +
-                        '<td>' + item.purchased + '</td>' +
-                        '<td>' +
-                            '<button class="counter-btn" onclick="adjustUsed(' + item.id + ', -1)" ' + (item.used <= 0 ? 'disabled' : '') + '>-</button>' +
-                            '<span style="margin: 0 6px;">' + item.used + '</span>' +
-                            '<button class="counter-btn" onclick="adjustUsed(' + item.id + ', 1)" ' + (item.used >= item.purchased ? 'disabled' : '') + '>+</button>' +
-                        '</td>' +
-                        '<td style="font-weight:bold; color: ' + (remaining <= 2 ? '#dc2626' : '#111827') + ';">' + remaining + '</td>' +
-                        '<td style="' + expiryStyle + '">' + (item.expiry || '-') + ' ' + (isExpiring ? '⚠️' : '') + '</td>' +
-                        '<td>' +
-                            '<span class="tag ' + (isReorderNeeded ? 'tag-reorder' : 'tag-ok') + '" onclick="toggleReorder(' + item.id + ')" title="點擊切換加單狀態">' +
-                                (isReorderNeeded ? '🚨 需加單' : '✅ 無需加單') +
-                            '</span>' +
-                        '</td>' +
-                        '<td>' +
-                            '<button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(' + item.id + ')">編輯</button> ' +
-                            '<button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(' + item.id + ')">刪除</button>' +
-                        '</td>';
-                    tbody.appendChild(tr);
-                }
-            });
-
-            updateStats();
-        }
-
-        function adjustUsed(id, delta) {
-            var item = inventory.find(function(i) { return i.id === id; });
-            if (item) {
-                var newUsed = item.used + delta;
-                if (newUsed >= 0 && newUsed <= item.purchased) {
-                    item.used = newUsed;
-                    saveUserData();
-                    renderTable();
-                }
+                document.getElementById("scanner-container").style.display = "none";
             }
         }
 
-        function toggleReorder(id) {
-            var item = inventory.find(function(i) { return i.id === id; });
-            if (item) {
-                var currentStatus = checkIsReorderNeeded(item);
-                item.reorderOverride = !currentStatus;
-                saveUserData();
-                renderTable();
-                showToast(item.reorderOverride ? "已標記為：需要加單" : "已標記為：無需加單");
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById("inputBarcode").value = decodedText;
+            showToast("成功讀取條碼：" + decodedText);
+            stopBarcodeScanner();
+
+            // 自動搜尋是否已有該條碼的面膜資料
+            var found = inventory.find(function(item) { return item.barcode === decodedText; });
+            if (found) {
+                document.getElementById("inputBrand").value = found.brand;
+                document.getElementById("inputName").value = found.name;
+                document.getElementById("inputCategory").value = found.category;
+                showToast("已自動帶入已存在的面膜：「" + found.name + "」");
             }
+        }
+
+        function onScanFailure(error) {
+            // 掃描中未辨識到時忽略
         }
 
         function openAddModal() {
+            stopBarcodeScanner();
             document.getElementById("modalTitle").innerText = "新增項目";
             document.getElementById("editId").value = "";
+            document.getElementById("inputBarcode").value = "";
             document.getElementById("inputBrand").value = "";
             document.getElementById("inputCategory").value = "💧 保濕鎖水";
             document.getElementById("inputName").value = "";
@@ -562,11 +334,13 @@
         }
 
         function openEditModal(id) {
+            stopBarcodeScanner();
             var item = inventory.find(function(i) { return i.id === id; });
             if (!item) return;
 
             document.getElementById("modalTitle").innerText = "編輯資料";
             document.getElementById("editId").value = item.id;
+            document.getElementById("inputBarcode").value = item.barcode || "";
             document.getElementById("inputBrand").value = item.brand;
             document.getElementById("inputCategory").value = item.category;
             document.getElementById("inputName").value = item.name;
@@ -578,11 +352,13 @@
         }
 
         function closeModal() {
+            stopBarcodeScanner();
             document.getElementById("itemModal").style.display = "none";
         }
 
         function saveItem() {
             var id = document.getElementById("editId").value;
+            var barcode = document.getElementById("inputBarcode").value.trim();
             var brand = document.getElementById("inputBrand").value.trim();
             var category = document.getElementById("inputCategory").value;
             var name = document.getElementById("inputName").value.trim();
@@ -599,6 +375,7 @@
             if (id) {
                 var item = inventory.find(function(i) { return i.id == id; });
                 if (item) {
+                    item.barcode = barcode;
                     item.brand = brand;
                     item.category = category;
                     item.name = name;
@@ -611,6 +388,7 @@
                 var newId = inventory.length ? Math.max.apply(Math, inventory.map(function(i) { return i.id; })) + 1 : 1;
                 inventory.push({
                     id: newId,
+                    barcode: barcode,
                     brand: brand,
                     category: category,
                     name: name,
