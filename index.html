@@ -59,11 +59,13 @@
         <div class="user-bar">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-weight: bold; color: #1e3a8a;">👤 當前使用者空間：</span>
-                <span style="font-weight: bold; color: #1d4ed8; font-size: 16px;" id="currentUserLabel">Fun Fun</span>
+                <select id="userSelect" class="select-input" onchange="handleUserSelectChange()" style="font-weight: bold; color: #1d4ed8; font-size: 15px; padding: 6px 12px; background: #fff; border-color: #93c5fd;">
+                    <!-- JS 動態生成選項 -->
+                </select>
+                <button class="btn btn-primary" style="padding: 6px 12px; border-radius: 50%; font-size: 16px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;" onclick="openAddUserModal()" title="新增使用者">+ </button>
             </div>
-            <div style="display: flex; gap: 6px;">
-                <input type="text" id="userInput" class="search-input" placeholder="輸入用戶 (如 YUK YUK)" style="min-width: 140px; padding: 6px 10px;">
-                <button class="btn btn-primary" style="padding: 6px 12px;" onclick="switchUser()">切換用戶</button>
+            <div>
+                <button class="btn" style="background: #dbeafe; color: #1e40af; padding: 6px 12px;" onclick="resetFunFunData()" title="重置 Fun Fun 為預設 15 款">🔄 重置 Fun Fun 15款面膜</button>
             </div>
         </div>
 
@@ -113,20 +115,20 @@
                         <th>已使用</th>
                         <th>剩餘數量</th>
                         <th>到期日</th>
-                        <th>加單狀態 (點擊切換)</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryTable">
-                </tbody>
-            </table>
+    <!-- 新增使用者 Modal -->
+    <div class="modal-overlay" id="addUserModal">
+        <div class="modal" style="max-width: 350px;">
+            <h2>新增使用者帳號</h2>
+            <div class="form-group">
+                <label>請輸入新帳號名稱 *</label>
+                <input type="text" id="newUserNameInput" class="form-control" placeholder="例如：Mom, Alice">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+                <button class="btn" style="background:#e5e7eb;" onclick="closeAddUserModal()">取消</button>
+                <button class="btn btn-primary" onclick="confirmAddUser()">建立帳號</button>
+            </div>
         </div>
     </div>
-
-    <!-- 右下角固定儲存按鈕 -->
-    <button class="fixed-save-btn" onclick="manualSave()">
-        💾 儲存所有變更
-    </button>
 
     <!-- 新增 / 編輯 Modal -->
     <div class="modal-overlay" id="itemModal">
@@ -208,51 +210,136 @@
             { id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
         ];
 
-        var currentUser = localStorage.getItem("mask_current_user") || "Fun Fun";
+        var userList = ["Fun Fun", "YUK YUK"];
+        var currentUser = "Fun Fun";
         var inventory = [];
         var deletingId = null;
 
+        function initUsers() {
+            var savedUsers = localStorage.getItem("mask_user_list");
+            if (savedUsers) {
+                try {
+                    userList = JSON.parse(savedUsers);
+                } catch(e){}
+            }
+            if (!userList.some(u => u.toLowerCase() === "fun fun")) userList.unshift("Fun Fun");
+            if (!userList.some(u => u.toLowerCase() === "yuk yuk")) userList.push("YUK YUK");
+            
+            var savedCurrent = localStorage.getItem("mask_current_user");
+            if (savedCurrent) {
+                var matched = findUserCaseInsensitive(savedCurrent);
+                currentUser = matched || savedCurrent;
+            } else {
+                currentUser = "Fun Fun";
+            }
+
+            renderUserSelect();
+        }
+
+        function findUserCaseInsensitive(targetName) {
+            if (!targetName) return null;
+            var lower = targetName.trim().toLowerCase();
+            return userList.find(u => u.toLowerCase() === lower) || null;
+        }
+
+        function renderUserSelect() {
+            var select = document.getElementById("userSelect");
+            select.innerHTML = "";
+            userList.forEach(function(u) {
+                var opt = document.createElement("option");
+                opt.value = u;
+                opt.innerText = u;
+                if (u.toLowerCase() === currentUser.toLowerCase()) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        function handleUserSelectChange() {
+            currentUser = document.getElementById("userSelect").value;
+            loadUserData();
+            renderTable();
+            showToast("已切換至使用者：「" + currentUser + "」");
+        }
+
+        function openAddUserModal() {
+            document.getElementById("newUserNameInput").value = "";
+            document.getElementById("addUserModal").style.display = "flex";
+        }
+
+        function closeAddUserModal() {
+            document.getElementById("addUserModal").style.display = "none";
+        }
+
+        function confirmAddUser() {
+            var inputName = document.getElementById("newUserNameInput").value.trim();
+            if (!inputName) {
+                showToast("請輸入有效名稱！");
+                return;
+            }
+            
+            // 智能檢查大小寫（不論輸入 FUN FUN / fun fun / Fun Fun 均能識別已有帳戶）
+            var existingUser = findUserCaseInsensitive(inputName);
+            if (existingUser) {
+                currentUser = existingUser;
+                showToast("已自動連結至現有帳號：「" + currentUser + "」");
+            } else {
+                userList.push(inputName);
+                currentUser = inputName;
+                localStorage.setItem("mask_user_list", JSON.stringify(userList));
+                showToast("已成功新增並切換至：「" + currentUser + "」");
+            }
+
+            renderUserSelect();
+            closeAddUserModal();
+            loadUserData();
+            renderTable();
+        }
+
         function loadUserData() {
-            var saved = localStorage.getItem("mask_data_" + currentUser);
+            var key = "mask_data_" + currentUser.toLowerCase();
+            var saved = localStorage.getItem(key);
+            
             if (saved) {
                 try {
                     inventory = JSON.parse(saved);
                 } catch(e) {
-                    inventory = (currentUser === "Fun Fun") ? JSON.parse(JSON.stringify(defaultInventory)) : [];
-                }
-            } else {
-                // 初次載入 Fun Fun 時載入 15 款，並儲存；新帳戶則保持空白
-                if (currentUser === "Fun Fun") {
-                    inventory = JSON.parse(JSON.stringify(defaultInventory));
-                } else {
                     inventory = [];
                 }
+            } else {
+                inventory = [];
+            }
+
+            // 如果是 Fun Fun (無論大小寫) 且暫存為空，強行還原 15 款預設資料
+            if (currentUser.toLowerCase() === "fun fun" && (!inventory || inventory.length === 0)) {
+                inventory = JSON.parse(JSON.stringify(defaultInventory));
                 saveUserData();
             }
-            document.getElementById("currentUserLabel").innerText = currentUser;
+
+            localStorage.setItem("mask_current_user", currentUser);
         }
 
         function saveUserData() {
-            localStorage.setItem("mask_data_" + currentUser, JSON.stringify(inventory));
+            var key = "mask_data_" + currentUser.toLowerCase();
+            localStorage.setItem(key, JSON.stringify(inventory));
             localStorage.setItem("mask_current_user", currentUser);
+            localStorage.setItem("mask_user_list", JSON.stringify(userList));
+        }
+
+        function resetFunFunData() {
+            var matchedFun = findUserCaseInsensitive("Fun Fun") || "Fun Fun";
+            currentUser = matchedFun;
+            inventory = JSON.parse(JSON.stringify(defaultInventory));
+            saveUserData();
+            renderUserSelect();
+            renderTable();
+            showToast("已重置 「Fun Fun」 空間為預設 15 款面膜！");
         }
 
         function manualSave() {
             saveUserData();
-            showToast("💾 已成功儲存「" + currentUser + "」空間的所有更改！");
-        }
-
-        function switchUser() {
-            var name = document.getElementById("userInput").value.trim();
-            if (!name) {
-                showToast("請輸入使用者名稱！");
-                return;
-            }
-            currentUser = name;
-            document.getElementById("userInput").value = "";
-            loadUserData();
-            renderTable();
-            showToast("已成功切換至用戶：" + currentUser);
+            showToast("💾 已成功儲存「" + currentUser + "」的所有變更！");
         }
 
         function showToast(msg) {
@@ -363,7 +450,7 @@
                 var newUsed = item.used + delta;
                 if (newUsed >= 0 && newUsed <= item.purchased) {
                     item.used = newUsed;
-                    saveUserData(); // 即時自動保存更改
+                    saveUserData();
                     renderTable();
                 }
             }
@@ -374,7 +461,7 @@
             if (item) {
                 var currentStatus = checkIsReorderNeeded(item);
                 item.reorderOverride = !currentStatus;
-                saveUserData(); // 即時自動保存更改
+                saveUserData();
                 renderTable();
                 showToast(item.reorderOverride ? "已標記為：需要加單" : "已標記為：無需加單");
             }
@@ -453,7 +540,7 @@
                 });
             }
 
-            saveUserData(); // 保存新資料/編輯結果
+            saveUserData();
             closeModal();
             renderTable();
             showToast("資料已儲存！");
@@ -472,7 +559,7 @@
         document.getElementById("confirmDeleteBtn").onclick = function() {
             if (deletingId !== null) {
                 inventory = inventory.filter(i => i.id !== deletingId);
-                saveUserData(); // 即時保存刪除後的結果
+                saveUserData();
                 renderTable();
                 closeConfirmModal();
                 showToast("已刪除項目");
@@ -480,6 +567,7 @@
         };
 
         window.onload = function() {
+            initUsers();
             loadUserData();
             renderTable();
         };
