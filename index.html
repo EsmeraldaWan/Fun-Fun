@@ -49,8 +49,11 @@
 
         .scan-btn { background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
         .scan-btn:hover { background: #047857; }
+        .ai-btn { background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+        .ai-btn:hover { background: #6d28d9; }
         #scanner-container { display: none; margin-top: 10px; border: 2px dashed #059669; border-radius: 8px; padding: 8px; text-align: center; background: #f0fdf4; }
         #reader { width: 100%; max-width: 300px; margin: 0 auto; }
+        .ai-loading { display: none; text-align: center; font-size: 13px; color: #7c3aed; font-weight: bold; padding: 8px; margin-top: 6px; background: #f3e8ff; border-radius: 6px; }
     </style>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -169,9 +172,20 @@
             <h2 id="modalTitle">新增資料</h2>
             <input type="hidden" id="editId">
             
+            <!-- AI 圖片識別功能 -->
+            <div class="form-group" style="background: #faf5ff; padding: 10px; border-radius: 8px; border: 1px solid #e9d5ff;">
+                <label style="color: #6b21a8;">✨ AI 相片辨識面膜資料</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="ai-btn" onclick="triggerCameraCapture()">📷 拍照辨識</button>
+                    <button type="button" class="ai-btn" style="background: #4c1d95;" onclick="triggerGalleryUpload()">🖼️ 上載相片</button>
+                    <input type="file" id="aiImageInput" accept="image/*" style="display: none;" onchange="handleAiImageUpload(event)">
+                </div>
+                <div id="aiLoadingStatus" class="ai-loading">🤖 AI 正在分析面膜相片中，請稍候...</div>
+            </div>
+
             <div class="form-group">
                 <label>條碼 (Barcode / EAN) <button type="button" class="scan-btn" onclick="toggleBarcodeScanner()">📷 掃描條碼</button></label>
-                <input type="text" id="inputBarcode" class="form-control" placeholder="可手動輸入或掃描條碼">
+                <input type="text" id="inputBarcode" class="form-control" placeholder="可手動輸入或掃描條碼" oninput="checkManualBarcodeLookup(this.value)">
                 <div id="scanner-container">
                     <div id="reader"></div>
                     <button type="button" class="btn" style="background:#dc2626; color:white; padding:4px 8px; margin-top:6px; font-size:12px;" onclick="stopBarcodeScanner()">關閉相機</button>
@@ -235,36 +249,108 @@
     <div class="toast" id="toast">提示訊息</div>
 
     <script>
-        var defaultInventory = [
-            { id: 1, brand: "PATRA", category: "💧 保濕鎖水", name: "Niacinamide B3 Hydrating Mask (B3 保濕面膜)", purchased: 9, used: 0, expiry: "2029-05-13", reorderOverride: null },
-            { id: 2, brand: "VITA-AGE", category: "✨ 美白煥膚", name: "AURUM (金箔美白煥膚面膜)", purchased: 5, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 12, brand: "VITA-AGE", category: "💧 保濕鎖水", name: "AURUM (高效玻尿酸安瓶精華)", purchased: 6, used: 0, expiry: "2026-11-15", reorderOverride: null },
-            { id: 3, brand: "SKIN LAB", category: "💧 保濕鎖水", name: "Glass Skin Aquaring Mask (琉璃水光爆水面膜)", purchased: 9, used: 0, expiry: "2029-06-16", reorderOverride: null },
-            { id: 4, brand: "SKIN LAB", category: "🌿 舒緩修護", name: "Glass Skin Nourishing Mask (琉璃光感滋養面膜)", purchased: 4, used: 0, expiry: "2029-09-02", reorderOverride: null },
-            { id: 5, brand: "LORAIN", category: "🌿 舒緩修護", name: "Exosome Glow 100 Mask (外生體極光修護面膜)", purchased: 2, used: 0, expiry: "2029-09-01", reorderOverride: null },
-            { id: 6, brand: "PATRA", category: "👑 緊緻抗老", name: "NAD+ Face Mask (NAD+ 逆齡再生面膜)", purchased: 3, used: 0, expiry: "2028-10-14", reorderOverride: null },
-            { id: 7, brand: "LEBELAGE", category: "👑 緊緻抗老", name: "Capsule Collagen Mask Pack (膠原蛋白彈力面膜)", purchased: 20, used: 0, expiry: "2029-05-24", reorderOverride: null },
-            { id: 8, brand: "Dactor Peel", category: "💧 保濕鎖水", name: "Dr.Exo Bio Embo Gel Mask (外生膠水凝面膜)", purchased: 7, used: 0, expiry: "2029-07-15", reorderOverride: null },
-            { id: 9, brand: "ELTHY", category: "💧 保濕鎖水", name: "Aqua Blast Face Mask (水爆深層保濕面膜)", purchased: 11, used: 0, expiry: "2029-06-01", reorderOverride: null },
-            { id: 10, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF04 玻色因肽抗皺提升膠原面膜", purchased: 10, used: 0, expiry: "2029-04-10", reorderOverride: null },
-            { id: 11, brand: "La Suisse", category: "✨ 美白煥膚", name: "JF171 千日菊肉毒即時去皺煥白面膜", purchased: 10, used: 0, expiry: "2029-05-15", reorderOverride: null },
-            { id: 13, brand: "La Suisse", category: "🌿 舒緩修護", name: "JF19 PDRN人參積雪草外泌體去皺提拉眼膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 14, brand: "La Suisse", category: "👑 緊緻抗老", name: "JF18 PDRN玻色因人參外泌體抗皺修復面膜", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null },
-            { id: 15, brand: "Kirei Hada (Sumi)", category: "💧 保濕鎖水", name: "SOS Ultra Moist Mask (急救爆水面膜)", purchased: 10, used: 0, expiry: "2029-12-31", reorderOverride: null }
-        ];
+        function checkManualBarcodeLookup(val) {
+            var barcodeVal = val.trim();
+            if (!barcodeVal) return;
+            var found = inventory.find(function(item) { return item.barcode && item.barcode.trim() === barcodeVal; });
+            if (found) {
+                document.getElementById("inputBrand").value = found.brand;
+                document.getElementById("inputName").value = found.name;
+                document.getElementById("inputCategory").value = found.category;
+                showToast("已自動找到並填入面膜：「" + found.name + "」");
+            }
+        }
 
-        var userList = ["Funfun", "YUK YUK"];
-        var currentUser = "Funfun";
-        var inventory = [];
-        var deletingId = null;
-        var currentStatFilter = "ALL";
-        var html5QrcodeScanner = null;
+        function triggerCameraCapture() {
+            var input = document.getElementById("aiImageInput");
+            input.setAttribute("capture", "environment");
+            input.click();
+        }
 
-        function showToast(msg) {
-            var toast = document.getElementById("toast");
-            toast.innerText = msg;
-            toast.style.display = "block";
-            setTimeout(function() { toast.style.display = "none"; }, 2500);
+        function triggerGalleryUpload() {
+            var input = document.getElementById("aiImageInput");
+            input.removeAttribute("capture");
+            input.click();
+        }
+
+        async function handleAiImageUpload(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+
+            var statusDiv = document.getElementById("aiLoadingStatus");
+            statusDiv.style.display = "block";
+            statusDiv.innerText = "🤖 AI 正在分析面膜相片中，請稍候...";
+
+            try {
+                var base64Data = await fileToBase64(file);
+                var rawBase64 = base64Data.split(',')[1];
+                var mimeType = file.type || "image/jpeg";
+
+                var promptText = "請分析這張面膜包裝圖片，提取品牌名稱 (brand)、產品名稱 (name)、以及功效分類 (category: 只能選以下四者之一：'💧 保濕鎖水', '✨ 美白煥膚', '🌿 舒緩修護', '👑 緊緻抗老')。請僅返回合法的JSON格式，無須Markdown格式。如：{\"brand\":\"...\", \"name\":\"...\", \"category\":\"...\"}";
+
+                var payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: promptText },
+                            { inlineData: { mimeType: mimeType, data: rawBase64 } }
+                        ]
+                    }]
+                };
+
+                var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=";
+                var response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                var result = await response.json();
+                statusDiv.style.display = "none";
+
+                var resText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (resText) {
+                    var cleanJson = resText.replace(/```json/g, "").replace(/```/g, "").trim();
+                    var parsed = JSON.parse(cleanJson);
+
+                    if (parsed.brand) document.getElementById("inputBrand").value = parsed.brand;
+                    if (parsed.name) document.getElementById("inputName").value = parsed.name;
+                    if (parsed.category) {
+                        var catSelect = document.getElementById("inputCategory");
+                        for (var i = 0; i < catSelect.options.length; i++) {
+                            if (catSelect.options[i].value.indexOf(parsed.category.replace(/[^一-龥]/g, '')) !== -1 || parsed.category.indexOf(catSelect.options[i].value) !== -1) {
+                                catSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    showToast("✨ AI 已成功讀取並為您填寫資訊！");
+                } else {
+                    showToast("未能辨識圖片，請手動輸入。");
+                }
+            } catch (err) {
+                console.error(err);
+                statusDiv.style.display = "none";
+                showToast("辨識失敗或網絡錯誤，請再試一次。");
+            }
+            event.target.value = "";
+        }
+
+        function fileToBase64(file) {
+            return new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function() { resolve(reader.result); };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById("inputBarcode").value = decodedText;
+            showToast("成功讀取條碼：" + decodedText);
+            stopBarcodeScanner();
+
+            checkManualBarcodeLookup(decodedText);
         }
 
         function getCategoryClass(cat) {
