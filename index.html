@@ -47,13 +47,11 @@
         .fixed-save-btn { position: fixed; bottom: 20px; right: 20px; z-index: 99; background: #2563eb; color: #ffffff; border: none; padding: 12px 20px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .fixed-save-btn:active { transform: scale(0.95); }
 
-        /* 相機掃描樣式 */
         .scan-btn { background: #059669; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
         .scan-btn:hover { background: #047857; }
         #scanner-container { display: none; margin-top: 10px; border: 2px dashed #059669; border-radius: 8px; padding: 8px; text-align: center; background: #f0fdf4; }
         #reader { width: 100%; max-width: 300px; margin: 0 auto; }
     </style>
-    <!-- 引入條碼掃描函式庫 -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
@@ -262,6 +260,151 @@
         var currentStatFilter = "ALL";
         var html5QrcodeScanner = null;
 
+        function showToast(msg) {
+            var toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.style.display = "block";
+            setTimeout(function() { toast.style.display = "none"; }, 2500);
+        }
+
+        function getCategoryClass(cat) {
+            if (cat.indexOf("保濕") !== -1) return "bg-moist";
+            if (cat.indexOf("美白") !== -1) return "bg-white";
+            if (cat.indexOf("修護") !== -1) return "bg-repair";
+            return "bg-antiage";
+        }
+
+        function isExpiringSoon(expiryDateStr) {
+            if (!expiryDateStr) return false;
+            var expDate = new Date(expiryDateStr);
+            var today = new Date();
+            var diffTime = expDate - today;
+            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 90;
+        }
+
+        function checkIsReorderNeeded(item) {
+            if (item.reorderOverride !== null && item.reorderOverride !== undefined) {
+                return item.reorderOverride;
+            }
+            return (item.purchased - item.used) <= 2;
+        }
+
+        function updateStats() {
+            var totalItems = inventory.length;
+            var totalSheets = 0;
+            var reorderCount = 0;
+            var expiringCount = 0;
+
+            inventory.forEach(function(item) {
+                var remaining = item.purchased - item.used;
+                totalSheets += remaining;
+                if (checkIsReorderNeeded(item)) reorderCount++;
+                if (isExpiringSoon(item.expiry)) expiringCount++;
+            });
+
+            document.getElementById("statTotalItems").innerText = totalItems;
+            document.getElementById("statTotalSheets").innerText = totalSheets;
+            document.getElementById("statReorder").innerText = reorderCount;
+            document.getElementById("statExpiring").innerText = expiringCount;
+        }
+
+        function resetStatCardsHighlight() {
+            document.querySelectorAll(".stat-card").forEach(function(c) { c.classList.remove("active"); });
+        }
+
+        function filterByStat(type) {
+            currentStatFilter = type;
+            resetStatCardsHighlight();
+
+            if (type === 'ALL') {
+                document.getElementById("cardTotalItems").classList.add("active");
+                document.getElementById("filterReorder").value = "ALL";
+            } else if (type === 'REORDER') {
+                document.getElementById("cardReorder").classList.add("active");
+                document.getElementById("filterReorder").value = "YES";
+            } else if (type === 'EXPIRING') {
+                document.getElementById("cardExpiring").classList.add("active");
+                document.getElementById("filterReorder").value = "ALL";
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            var search = document.getElementById("searchInput").value.toLowerCase();
+            var filterCat = document.getElementById("filterCategory").value;
+            var filterReorder = document.getElementById("filterReorder").value;
+
+            var tbody = document.getElementById("inventoryTable");
+            tbody.innerHTML = "";
+
+            inventory.forEach(function(item) {
+                var isReorderNeeded = checkIsReorderNeeded(item);
+                var isExpiring = isExpiringSoon(item.expiry);
+
+                var matchSearch = item.name.toLowerCase().indexOf(search) !== -1 || item.brand.toLowerCase().indexOf(search) !== -1;
+                var matchCat = (filterCat === "ALL" || item.category === filterCat);
+                var matchReorder = (filterReorder === "ALL") || 
+                                   (filterReorder === "YES" && isReorderNeeded) || 
+                                   (filterReorder === "NO" && !isReorderNeeded);
+                var matchStatFilter = (currentStatFilter !== 'EXPIRING') || isExpiring;
+
+                if (matchSearch && matchCat && matchReorder && matchStatFilter) {
+                    var remaining = item.purchased - item.used;
+                    var tr = document.createElement("tr");
+                    var expiryStyle = isExpiring ? "color:#dc2626; font-weight:bold;" : "";
+
+                    tr.innerHTML = `
+                        <td><span class="tag ${getCategoryClass(item.category)}">${item.category}</span></td>
+                        <td><strong>[${item.brand}]</strong> ${item.name}</td>
+                        <td>${item.purchased}</td>
+                        <td>
+                            <button class="counter-btn" onclick="adjustUsed(${item.id}, -1)" ${item.used <= 0 ? 'disabled' : ''}>-</button>
+                            <span style="margin: 0 6px;">${item.used}</span>
+                            <button class="counter-btn" onclick="adjustUsed(${item.id}, 1)" ${item.used >= item.purchased ? 'disabled' : ''}>+</button>
+                        </td>
+                        <td style="font-weight:bold; color: ${remaining <= 2 ? '#dc2626' : '#111827'};">${remaining}</td>
+                        <td style="${expiryStyle}">${item.expiry || '-'} ${isExpiring ? '⚠️' : ''}</td>
+                        <td>
+                            <span class="tag ${isReorderNeeded ? 'tag-reorder' : 'tag-ok'}" onclick="toggleReorder(${item.id})" title="點擊切換加單狀態">
+                                ${isReorderNeeded ? '🚨 需加單' : '✅ 無需加單'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn" style="background:#f3f4f6; color:#374151; padding:4px 8px;" onclick="openEditModal(${item.id})">編輯</button>
+                            <button class="btn" style="background:#fee2e2; color:#dc2626; padding:4px 8px;" onclick="openConfirmModal(${item.id})">刪除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+
+            updateStats();
+        }
+
+        function adjustUsed(id, delta) {
+            var item = inventory.find(function(i) { return i.id === id; });
+            if (item) {
+                var newUsed = item.used + delta;
+                if (newUsed >= 0 && newUsed <= item.purchased) {
+                    item.used = newUsed;
+                    saveUserData();
+                    renderTable();
+                }
+            }
+        }
+
+        function toggleReorder(id) {
+            var item = inventory.find(function(i) { return i.id === id; });
+            if (item) {
+                var currentStatus = checkIsReorderNeeded(item);
+                item.reorderOverride = !currentStatus;
+                saveUserData();
+                renderTable();
+                showToast(item.reorderOverride ? "已標記為：需要加單" : "已標記為：無需加單");
+            }
+        }
+
         function toggleBarcodeScanner() {
             var container = document.getElementById("scanner-container");
             if (container.style.display === "block") {
@@ -304,7 +447,6 @@
             showToast("成功讀取條碼：" + decodedText);
             stopBarcodeScanner();
 
-            // 自動搜尋是否已有該條碼的面膜資料
             var found = inventory.find(function(item) { return item.barcode === decodedText; });
             if (found) {
                 document.getElementById("inputBrand").value = found.brand;
@@ -314,9 +456,7 @@
             }
         }
 
-        function onScanFailure(error) {
-            // 掃描中未辨識到時忽略
-        }
+        function onScanFailure(error) {}
 
         function openAddModal() {
             stopBarcodeScanner();
@@ -425,7 +565,14 @@
             }
         };
 
-        // 帳號管理邏輯與初始化修復
+        // 安全地清理舊名稱格式（去除空格並統一配對）
+        function normalizeUserName(name) {
+            if (!name) return "funfun";
+            var clean = name.replace(/\s+/g, "").toLowerCase();
+            if (clean === "funfun") return "funfun";
+            return name.trim();
+        }
+
         function initUsers() {
             var savedList = localStorage.getItem("mask_user_list");
             if (savedList) {
@@ -433,14 +580,24 @@
                     userList = JSON.parse(savedList);
                 } catch(e) {}
             }
-            if (!userList || userList.length === 0) {
-                userList = ["Funfun", "YUK YUK"];
-            }
+            
+            // 淨化選單，避免重複包含 "Fun Fun" 和 "Funfun"
+            var cleanList = ["Funfun", "YUK YUK"];
+            userList.forEach(function(u) {
+                var norm = normalizeUserName(u);
+                if (norm !== "funfun" && norm !== "yukyuk" && cleanList.indexOf(u) === -1) {
+                    cleanList.push(u);
+                }
+            });
+            userList = cleanList;
 
             var savedCurrentUser = localStorage.getItem("mask_current_user");
             if (savedCurrentUser) {
-                var match = userList.find(function(u) { return u.toLowerCase() === savedCurrentUser.toLowerCase(); });
-                if (match) currentUser = match;
+                if (normalizeUserName(savedCurrentUser) === "funfun") {
+                    currentUser = "Funfun";
+                } else {
+                    currentUser = savedCurrentUser;
+                }
             } else {
                 currentUser = "Funfun";
             }
@@ -456,7 +613,7 @@
                 var opt = document.createElement("option");
                 opt.value = u;
                 opt.innerText = u;
-                if (u.toLowerCase() === currentUser.toLowerCase()) {
+                if (normalizeUserName(u) === normalizeUserName(currentUser)) {
                     opt.selected = true;
                 }
                 select.appendChild(opt);
@@ -469,16 +626,23 @@
         }
 
         function switchUser(targetUser) {
-            saveUserData(); // 儲存舊帳號
-            var match = userList.find(function(u) { return u.toLowerCase() === targetUser.toLowerCase(); });
-            if (match) {
-                currentUser = match;
+            saveUserData();
+            
+            if (normalizeUserName(targetUser) === "funfun") {
+                currentUser = "Funfun";
             } else {
-                currentUser = targetUser;
-                userList.push(targetUser);
-                localStorage.setItem("mask_user_list", JSON.stringify(userList));
+                var match = userList.find(function(u) { return normalizeUserName(u) === normalizeUserName(targetUser); });
+                if (match) {
+                    currentUser = match;
+                } else {
+                    currentUser = targetUser;
+                    userList.push(targetUser);
+                }
             }
+            
+            localStorage.setItem("mask_user_list", JSON.stringify(userList));
             localStorage.setItem("mask_current_user", currentUser);
+            
             renderUserSelect();
             loadUserData(currentUser);
             renderTable();
@@ -486,9 +650,15 @@
         }
 
         function loadUserData(user) {
-            var storageKey = "mask_inventory_" + user.toLowerCase();
+            var norm = normalizeUserName(user);
+            var storageKey = "mask_inventory_" + norm;
             var savedData = localStorage.getItem(storageKey);
             
+            // 嘗試從舊Key ("mask_inventory_fun fun" / "mask_inventory_funfun") 中復原
+            if (!savedData && norm === "funfun") {
+                savedData = localStorage.getItem("mask_inventory_fun fun") || localStorage.getItem("mask_inventory_funfun");
+            }
+
             if (savedData) {
                 try {
                     inventory = JSON.parse(savedData);
@@ -496,17 +666,19 @@
                     inventory = [];
                 }
             } else {
-                if (user.toLowerCase() === "funfun" || user.toLowerCase() === "fun fun") {
-                    inventory = JSON.parse(JSON.stringify(defaultInventory));
-                    localStorage.setItem(storageKey, JSON.stringify(inventory));
-                } else {
-                    inventory = [];
-                }
+                inventory = [];
+            }
+
+            // 防護保險機制：若為 Funfun / Fun Fun 帳戶且資料為空，自動補齊 15 款面膜
+            if (norm === "funfun" && (!inventory || inventory.length === 0)) {
+                inventory = JSON.parse(JSON.stringify(defaultInventory));
+                localStorage.setItem(storageKey, JSON.stringify(inventory));
             }
         }
 
         function saveUserData() {
-            var storageKey = "mask_inventory_" + currentUser.toLowerCase();
+            var norm = normalizeUserName(currentUser);
+            var storageKey = "mask_inventory_" + norm;
             localStorage.setItem(storageKey, JSON.stringify(inventory));
             localStorage.setItem("mask_user_list", JSON.stringify(userList));
             localStorage.setItem("mask_current_user", currentUser);
@@ -547,19 +719,24 @@
                 showToast("請輸入新名稱！");
                 return;
             }
-            if (newName.toLowerCase() === currentUser.toLowerCase()) {
+            if (normalizeUserName(newName) === normalizeUserName(currentUser)) {
                 closeRenameUserModal();
                 return;
             }
             
-            var oldStorageKey = "mask_inventory_" + currentUser.toLowerCase();
-            var newStorageKey = "mask_inventory_" + newName.toLowerCase();
+            var oldNorm = normalizeUserName(currentUser);
+            var newNorm = normalizeUserName(newName);
             
-            var index = userList.findIndex(function(u) { return u.toLowerCase() === currentUser.toLowerCase(); });
+            var oldStorageKey = "mask_inventory_" + oldNorm;
+            var newStorageKey = "mask_inventory_" + newNorm;
+            
+            var index = userList.findIndex(function(u) { return normalizeUserName(u) === oldNorm; });
             if (index !== -1) userList[index] = newName;
             
             localStorage.setItem(newStorageKey, JSON.stringify(inventory));
-            localStorage.removeItem(oldStorageKey);
+            if (oldNorm !== "funfun") {
+                localStorage.removeItem(oldStorageKey);
+            }
             
             currentUser = newName;
             closeRenameUserModal();
